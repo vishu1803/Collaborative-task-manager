@@ -12,7 +12,7 @@ const UserSchema = new Schema<IUser>({
   email: {
     type: String,
     required: [true, 'Email is required'],
-    unique: true,
+    unique: true, // ✅ Keep unique here
     lowercase: true,
     trim: true,
     match: [
@@ -24,22 +24,19 @@ const UserSchema = new Schema<IUser>({
     type: String,
     required: [true, 'Password is required'],
     minlength: [6, 'Password must be at least 6 characters'],
-    select: false // Don't include password in queries by default
+    select: false
   }
 }, {
-  timestamps: true, // Automatically adds createdAt and updatedAt
+  timestamps: true,
   versionKey: false
 });
 
-// Index for faster queries
-UserSchema.index({ email: 1 });
+// ❌ Remove this duplicate index
+// UserSchema.index({ email: 1 });
 
 // Hash password before saving
 UserSchema.pre('save', async function(next) {
-  // Only hash if password is modified
-  if (!this.isModified('password')) {
-    return next();
-  }
+  if (!this.isModified('password')) return next();
 
   try {
     const saltRounds = 12;
@@ -50,7 +47,7 @@ UserSchema.pre('save', async function(next) {
   }
 });
 
-// Method to compare passwords
+// Compare passwords
 UserSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
   try {
     return await bcrypt.compare(candidatePassword, this.password);
@@ -67,3 +64,5 @@ UserSchema.methods.toJSON = function() {
 };
 
 export const User = mongoose.model<IUser>('User', UserSchema);
+// Re-export IUser for TypeScript
+export type { IUser };

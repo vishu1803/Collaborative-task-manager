@@ -1,4 +1,5 @@
-import { Document } from 'mongoose';
+import mongoose from 'mongoose';
+import { Document, } from 'mongoose';
 
 // User related types
 export interface IUser extends Document {
