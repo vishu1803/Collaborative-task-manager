@@ -1,4 +1,5 @@
-import { AuthResponse, ApiResponse, LoginCredentials, RegisterCredentials } from '@/types';
+import { AuthResponse, ApiResponse, LoginCredentials, RegisterCredentials, Task, TaskStatus, TaskPriority } from '@/types';
+
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -114,3 +115,149 @@ export const healthCheck = async (): Promise<boolean> => {
     return false;
   }
 };
+
+
+// Task API functions
+export const taskAPI = {
+  // Get all tasks with filters
+  getTasks: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: TaskStatus;
+    priority?: TaskPriority;
+    assignedToId?: string;
+    creatorId?: string;
+    overdue?: boolean;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }) => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          searchParams.append(key, value.toString());
+        }
+      });
+    }
+    return api.get<{
+      tasks: Task[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalTasks: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+      };
+    }>(`/tasks?${searchParams.toString()}`);
+  },
+
+  // Get task by ID
+  getTaskById: async (id: string) => {
+    return api.get<Task>(`/tasks/${id}`);
+  },
+
+  // Create new task
+  createTask: async (taskData: {
+    title: string;
+    description: string;
+    dueDate: string;
+    priority: TaskPriority;
+    assignedToId: string;
+  }) => {
+    return api.post<Task>('/tasks', taskData);
+  },
+
+  // Update task
+  updateTask: async (id: string, updates: Partial<{
+    title: string;
+    description: string;
+    dueDate: string;
+    priority: TaskPriority;
+    status: TaskStatus;
+    assignedToId: string;
+  }>) => {
+    return api.put<Task>(`/tasks/${id}`, updates);
+  },
+
+  // Delete task
+  deleteTask: async (id: string) => {
+    return api.delete(`/tasks/${id}`);
+  },
+
+  // Get current user's tasks
+  getMyTasks: async (type?: 'assigned' | 'created' | 'all') => {
+    const params = type ? `?type=${type}` : '';
+    return api.get<{
+      tasks: Task[];
+      total: number;
+      type: string;
+    }>(`/tasks/my-tasks${params}`);
+  },
+
+  // Get overdue tasks
+  getOverdueTasks: async () => {
+    return api.get<{
+      tasks: Task[];
+      total: number;
+    }>('/tasks/overdue');
+  },
+
+  // Get task statistics
+  getTaskStatistics: async (userId?: string) => {
+    const params = userId ? `?userId=${userId}` : '';
+    return api.get<{
+      total: number;
+      byStatus: {
+        todo: number;
+        inProgress: number;
+        review: number;
+        completed: number;
+      };
+      overdue: number;
+      completionRate: number;
+      priorityCounts: {
+        low: number;
+        medium: number;
+        high: number;
+        urgent: number;
+      };
+    }>(`/tasks/statistics${params}`);
+  },
+};
+
+// User API functions  
+export const userAPI = {
+  // Get all users
+  getUsers: async (includeMe?: boolean) => {
+    const params = includeMe ? '?includeMe=true' : '';
+    return api.get<{
+      users: Array<{
+        _id: string;
+        name: string;
+        email: string;
+      }>;
+      total: number;
+    }>(`/users${params}`);
+  },
+
+  // Search users
+  searchUsers: async (searchTerm: string, includeMe?: boolean) => {
+    const params = new URLSearchParams({ q: searchTerm });
+    if (includeMe) params.append('includeMe', 'true');
+    return api.get<{
+      users: Array<{
+        _id: string;
+        name: string;
+        email: string;
+      }>;
+      total: number;
+      searchTerm: string;
+    }>(`/users/search?${params.toString()}`);
+  },
+
+  // Get current user stats
+  getMyStats: async () => {
+    return api.get('/users/me/stats');
+  },
+};
+
