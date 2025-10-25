@@ -6,6 +6,7 @@ import { logger } from './middleware/logger';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { generalLimiter, securityHeaders } from './middleware/security';
 import userRoutes from './routes/users';
+import taskRoutes from './routes/tasks';
 
 // Import routes
 import authRoutes from './routes/auth';
@@ -55,6 +56,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // Handle 404 for API routes
 
@@ -81,7 +83,16 @@ app.use((req, res) => {
   'GET /api/users/me/stats',
   'GET /api/users/:id',
   'GET /api/users/:id/stats',
-  'DELETE /api/users/:id'
+  'DELETE /api/users/:id',
+  'POST /api/tasks',
+  'GET /api/tasks',
+  'GET /api/tasks/statistics',
+  'GET /api/tasks/overdue',
+  'GET /api/tasks/my-tasks',
+  'GET /api/tasks/user-tasks',
+  'GET /api/tasks/:id',
+  'PUT /api/tasks/:id',
+  'DELETE /api/tasks/:id'
 ]
     }
   });

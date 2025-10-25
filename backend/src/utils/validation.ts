@@ -126,6 +126,35 @@ export const getUserByIdSchema = z.object({
     .regex(/^[0-9a-fA-F]{24}$/, 'Invalid user ID format')
 });
 
+// Add these schemas to the existing validation file
+
+// Task validation schemas (already exist, but let's add more)
+export const getTasksQuerySchema = z.object({
+  page: z.string().regex(/^\d+$/, 'Page must be a number').optional(),
+  limit: z.string().regex(/^\d+$/, 'Limit must be a number').optional(),
+  sortBy: z.enum(['createdAt', 'updatedAt', 'dueDate', 'title', 'priority', 'status']).optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional(),
+  status: z.nativeEnum(TaskStatus).optional(),
+  priority: z.nativeEnum(TaskPriority).optional(),
+  assignedToId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid assigned user ID format').optional(),
+  creatorId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid creator ID format').optional(),
+  overdue: z.enum(['true', 'false']).optional()
+});
+
+export const getTaskByIdSchema = z.object({
+  id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid task ID format')
+});
+
+export const getUserTasksQuerySchema = z.object({
+  userId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid user ID format').optional(),
+  type: z.enum(['assigned', 'created', 'all']).optional()
+});
+
+export const getMyTasksQuerySchema = z.object({
+  type: z.enum(['assigned', 'created', 'all']).optional()
+});
+
+
 // Validation middleware for query parameters
 export const validateQuery = (schema: z.ZodSchema) => {
   return (req: any, res: any, next: any) => {

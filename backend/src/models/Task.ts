@@ -63,3 +63,4 @@ TaskSchema.index({ assignedToId: 1, status: 1 });
 TaskSchema.index({ creatorId: 1, status: 1 });
 
 export const Task = mongoose.model<ITask>('Task', TaskSchema);
+export type { ITask };
