@@ -7,7 +7,7 @@ import { socketManager } from '../sockets/socketManager';
 export class TaskController {
   static createTask = asyncHandler(async (req: Request, res: Response) => {
     const { title, description, dueDate, priority, assignedToId } = req.body;
-    const creatorId = req.user._id.toString();
+    const creatorId = (req.user as any)._id.toString();
 
     const task = await TaskService.createTask({
       title,
@@ -18,8 +18,7 @@ export class TaskController {
       creatorId
     });
 
-    // Emit socket event for real-time update
-    socketManager.notifyTaskCreated(task, req.user.name);
+    socketManager.notifyTaskCreated(task, (req.user as any).name);
 
     const response: ApiResponse = {
       success: true,
@@ -32,54 +31,50 @@ export class TaskController {
 
   static updateTask = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    if (!id) throw new Error('Task ID is required');
+
     const updates = req.body;
-    const userId = req.user._id.toString();
+    const userId = (req.user as any)._id.toString();
 
-    // Get old task data for comparison
-    const oldTask = await TaskService.getTaskById(id);
-    
-    const task = await TaskService.updateTask(id, updates, userId);
+    const oldTask = await TaskService.getTaskById(id!);
 
-    // Determine what changed
+    const task = await TaskService.updateTask(id!, updates, userId);
+
     const changes: string[] = [];
     if (updates.title) changes.push('title');
     if (updates.description) changes.push('description');
     if (updates.dueDate) changes.push('due date');
-    
-    // Check for status change
+
     if (updates.status && oldTask.status !== updates.status) {
       changes.push('status');
       socketManager.notifyTaskStatusChanged(
         task,
-        req.user.name,
+        (req.user as any).name,
         oldTask.status,
         updates.status
       );
     }
 
-    // Check for priority change
     if (updates.priority && oldTask.priority !== updates.priority) {
       changes.push('priority');
       socketManager.notifyTaskPriorityChanged(
         task,
-        req.user.name,
+        (req.user as any).name,
         oldTask.priority,
         updates.priority
       );
     }
 
-    // Check for assignee change
-    if (updates.assignedToId && oldTask.assignedToId.toString() !== updates.assignedToId) {
+    if (updates.assignedToId && (oldTask.assignedToId as any).toString() !== updates.assignedToId) {
       changes.push('assignee');
       socketManager.notifyTaskReassigned(
         task,
-        req.user.name,
-        oldTask.assignedToId.toString(),
+        (req.user as any).name,
+        (oldTask.assignedToId as any).toString(),
         updates.assignedToId
       );
     } else if (changes.length > 0) {
-      // General update notification
-      socketManager.notifyTaskUpdated(task, req.user.name, changes);
+      socketManager.notifyTaskUpdated(task, (req.user as any).name, changes);
     }
 
     const response: ApiResponse = {
@@ -93,20 +88,19 @@ export class TaskController {
 
   static deleteTask = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const userId = req.user._id.toString();
+    if (!id) throw new Error('Task ID is required');
 
-    // Get task data before deletion
-    const task = await TaskService.getTaskById(id);
+    const userId = (req.user as any)._id.toString();
+    const task = await TaskService.getTaskById(id!);
 
-    await TaskService.deleteTask(id, userId);
+    await TaskService.deleteTask(id!, userId);
 
-    // Emit socket event
     socketManager.notifyTaskDeleted(
       (task._id as any).toString(),
       task.title,
-      task.creatorId._id?.toString() || task.creatorId.toString(),
-      task.assignedToId._id?.toString() || task.assignedToId.toString(),
-      req.user.name
+      (task.creatorId as any)._id?.toString() || (task.creatorId as any).toString(),
+      (task.assignedToId as any)._id?.toString() || (task.assignedToId as any).toString(),
+      (req.user as any).name
     );
 
     const response: ApiResponse = {
@@ -117,7 +111,6 @@ export class TaskController {
     res.status(200).json(response);
   });
 
-  // ... rest of the controller methods remain the same
   static getTasks = asyncHandler(async (req: Request, res: Response) => {
     const {
       page = '1',
@@ -172,8 +165,9 @@ export class TaskController {
 
   static getTaskById = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    if (!id) throw new Error('Task ID is required');
 
-    const task = await TaskService.getTaskById(id);
+    const task = await TaskService.getTaskById(id!);
 
     const response: ApiResponse = {
       success: true,
@@ -187,7 +181,7 @@ export class TaskController {
   static getTaskStatistics = asyncHandler(async (req: Request, res: Response) => {
     const { userId } = req.query;
     
-    const targetUserId = userId as string || req.user._id.toString();
+    const targetUserId = (userId as string) || (req.user as any)._id.toString();
     
     const stats = await TaskService.getTaskStatistics(targetUserId);
 
@@ -202,7 +196,7 @@ export class TaskController {
 
   static getUserTasks = asyncHandler(async (req: Request, res: Response) => {
     const { userId, type = 'all' } = req.query;
-    const currentUserId = req.user._id.toString();
+    const currentUserId = (req.user as any)._id.toString();
     
     const targetUserId = (userId as string) || currentUserId;
     
@@ -227,7 +221,7 @@ export class TaskController {
 
   static getMyTasks = asyncHandler(async (req: Request, res: Response) => {
     const { type = 'all' } = req.query;
-    const currentUserId = req.user._id.toString();
+    const currentUserId = (req.user as any)._id.toString();
     
     const tasks = await TaskService.getUserTasks(
       currentUserId, 
@@ -248,7 +242,7 @@ export class TaskController {
   });
 
   static getOverdueTasks = asyncHandler(async (req: Request, res: Response) => {
-    const currentUserId = req.user._id.toString();
+    const currentUserId = (req.user as any)._id.toString();
     
     const result = await TaskService.getTasks({
       filters: { overdue: true },
@@ -258,8 +252,8 @@ export class TaskController {
     });
 
     const userOverdueTasks = result.tasks.filter((task: any) => 
-      task.creatorId._id.toString() === currentUserId || 
-      task.assignedToId._id.toString() === currentUserId
+      (task.creatorId as any)._id.toString() === currentUserId || 
+      (task.assignedToId as any)._id.toString() === currentUserId
     );
 
     const response: ApiResponse = {

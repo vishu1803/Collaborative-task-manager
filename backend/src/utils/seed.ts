@@ -1,6 +1,6 @@
 import { connectDatabase } from '../config/database';
 import { User } from '../models/User';
-import { config } from '../config/env';
+//import { config } from '../config/env';
 
 const seedDatabase = async () => {
   try {

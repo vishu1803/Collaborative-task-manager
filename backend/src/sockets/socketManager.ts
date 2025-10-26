@@ -1,4 +1,4 @@
-import { Server as SocketIOServer, Socket } from 'socket.io';
+import { Server as SocketIOServer } from 'socket.io';
 import { AuthenticatedSocket } from '../middleware/socketAuth';
 import { SocketEvents, SocketUser, TaskNotification } from '../types/socket';
 

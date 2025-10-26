@@ -3,6 +3,9 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { TaskProvider } from '@/contexts/TaskContext';
+import { SWRProvider } from '@/contexts/SWRProvider';
+import { SocketProvider } from '@/contexts/SocketContext';
+import { ToastContainer } from '@/components/notifications/ToastContainer';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,11 +22,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          <TaskProvider>
-            {children}
-          </TaskProvider>
-        </AuthProvider>
+        <SWRProvider>
+          <AuthProvider>
+            <SocketProvider>
+              <TaskProvider>
+                {children}
+                <ToastContainer />
+              </TaskProvider>
+            </SocketProvider>
+          </AuthProvider>
+        </SWRProvider>
       </body>
     </html>
   );

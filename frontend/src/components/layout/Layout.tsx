@@ -4,7 +4,10 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSocket } from '@/contexts/SocketContext';
 import { Button } from '@/components/ui/Button';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
+import { ConnectionStatus } from '@/components/common/ConnectionStatus';
 import { clsx } from 'clsx';
 
 interface LayoutProps {
@@ -13,6 +16,7 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
+  const { isConnected } = useSocket();
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -40,6 +44,10 @@ export function Layout({ children }: LayoutProps) {
               <div className="flex-shrink-0 flex items-center">
                 <Link href="/dashboard" className="text-xl font-bold text-gray-900">
                   TaskManager
+                  {/* Real-time indicator */}
+                  {isConnected && (
+                    <span className="ml-2 text-xs text-green-600">●</span>
+                  )}
                 </Link>
               </div>
 
@@ -65,9 +73,17 @@ export function Layout({ children }: LayoutProps) {
 
             {/* User Menu */}
             <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
+              {/* Connection Status */}
+              <ConnectionStatus />
+
+              {/* Notifications */}
+              <NotificationDropdown />
+
+              {/* User Info */}
               <span className="text-sm text-gray-700">
                 Welcome, <span className="font-medium">{user?.name}</span>
               </span>
+              
               <Button
                 variant="outline"
                 size="sm"
@@ -78,7 +94,8 @@ export function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Mobile menu button */}
-            <div className="sm:hidden flex items-center">
+            <div className="sm:hidden flex items-center space-x-2">
+              <NotificationDropdown />
               <Button
                 variant="ghost"
                 size="sm"
@@ -127,14 +144,17 @@ export function Layout({ children }: LayoutProps) {
               <div className="flex items-center px-4">
                 <div className="text-base font-medium text-gray-800">{user?.name}</div>
               </div>
-              <div className="mt-3 space-y-1">
-                <Button
-                  variant="ghost"
-                  className="w-full text-left"
-                  onClick={handleLogout}
-                >
-                  Logout
-                </Button>
+              <div className="mt-3 space-y-1 px-4">
+                <ConnectionStatus />
+                <div className="pt-2">
+                  <Button
+                    variant="ghost"
+                    className="w-full text-left"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

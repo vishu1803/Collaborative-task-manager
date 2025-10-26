@@ -31,7 +31,7 @@ export interface RegisterCredentials {
 
 // Task types
 export enum TaskStatus {
-  TODO = 'To Do',
+  TODO = 'Todo',
   IN_PROGRESS = 'In Progress',
   REVIEW = 'Review',
   COMPLETED = 'Completed'
@@ -75,4 +75,17 @@ export interface TaskNotification {
     id: string;
     name: string;
   };
+}
+
+// Add to existing types
+export interface TaskNotification {
+  type: 'created' | 'updated' | 'deleted' | 'assigned' | 'status_changed' | 'priority_changed';
+  task: Task;
+  message: string;
+  timestamp: string;
+  actor: {
+    id: string;
+    name: string;
+  };
+  read?: boolean; // Add read status for UI
 }

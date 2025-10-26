@@ -1,6 +1,6 @@
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
-import { config } from '../config/env';
+
 
 // Rate limiting configuration
 export const createRateLimiter = (windowMs: number, max: number, message: string) => {
@@ -15,7 +15,7 @@ export const createRateLimiter = (windowMs: number, max: number, message: string
     standardHeaders: true,
     legacyHeaders: false,
     // Skip successful requests in rate limiting
-    skip: (req, res) => res.statusCode < 400
+    skip: (_req, res) => res.statusCode < 400
   });
 };
 

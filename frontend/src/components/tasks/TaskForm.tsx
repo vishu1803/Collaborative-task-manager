@@ -66,11 +66,9 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
   const handleFormSubmit = async (data: CreateTaskFormData | UpdateTaskFormData) => {
     try {
       await onSubmit(data);
-      if (!isEditing) {
-        reset();
-      }
+      if (!isEditing) reset();
     } catch (error) {
-      // Error handling is done in parent component
+      // Error handling is done in parent
     }
   };
 
@@ -100,7 +98,7 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
           {...register('title')}
           label="Task Title"
           placeholder="Enter task title"
-          error={errors.title?.message}
+          error={errors.title?.message || ''}
         />
 
         <Textarea
@@ -108,7 +106,7 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
           label="Description"
           placeholder="Describe the task in detail"
           rows={4}
-          error={errors.description?.message}
+          error={errors.description?.message || ''}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -116,14 +114,14 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
             {...register('dueDate')}
             label="Due Date"
             type="datetime-local"
-            error={errors.dueDate?.message}
+            error={errors.dueDate?.message || ''}
           />
 
           <Select
             {...register('priority')}
             label="Priority"
             options={priorityOptions}
-            error={errors.priority?.message}
+            error={errors.priority?.message || ''}
           />
         </div>
 
@@ -134,7 +132,7 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
             options={userOptions}
             placeholder={loadingUsers ? 'Loading users...' : 'Select a user'}
             disabled={loadingUsers}
-            error={errors.assignedToId?.message}
+            error={errors.assignedToId?.message || ''}
           />
 
           {isEditing && (
@@ -142,7 +140,7 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
               {...register('status')}
               label="Status"
               options={statusOptions}
-              error={errors.status?.message}
+              error={(errors as any).status?.message || ''}
             />
           )}
         </div>

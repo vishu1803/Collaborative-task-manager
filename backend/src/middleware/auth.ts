@@ -12,33 +12,32 @@ declare global {
   }
 }
 
-export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+// Ensure all code paths return void
+export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Check for token in Authorization header
     const token = JWTUtils.extractTokenFromHeader(req.headers.authorization);
-    
+
     if (!token) {
       const response: ApiResponse = {
         success: false,
         message: 'Access denied. No token provided.'
       };
-      return res.status(401).json(response);
+      res.status(401).json(response);
+      return;
     }
 
-    // Verify token
     const decoded = JWTUtils.verifyToken(token);
-    
-    // Get user from database (excluding password)
+
     const user = await User.findById(decoded.userId).select('-password');
     if (!user) {
       const response: ApiResponse = {
         success: false,
         message: 'Invalid token. User not found.'
       };
-      return res.status(401).json(response);
+      res.status(401).json(response);
+      return;
     }
 
-    // Attach user to request object
     req.user = user;
     next();
     
@@ -53,10 +52,10 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 };
 
 // Optional middleware for routes that work with or without auth
-export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
+export const optionalAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   try {
     const token = JWTUtils.extractTokenFromHeader(req.headers.authorization);
-    
+
     if (token) {
       const decoded = JWTUtils.verifyToken(token);
       const user = await User.findById(decoded.userId).select('-password');
@@ -64,10 +63,9 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
         req.user = user;
       }
     }
-    
+
     next();
   } catch (error) {
-    // For optional auth, we don't return an error, just continue without user
     next();
   }
 };

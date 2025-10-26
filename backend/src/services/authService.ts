@@ -1,6 +1,6 @@
 import { User } from '../models/User';
 import { JWTUtils } from '../utils/jwt';
-import { ApiResponse, JWTPayload } from '../types';
+import { JWTPayload } from '../types';
 
 export class AuthService {
   static async register(name: string, email: string, password: string) {

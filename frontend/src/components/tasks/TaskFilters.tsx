@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { TaskStatus, TaskPriority } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
-import { Input } from '@/components/ui/Input';
+
 
 interface TaskFiltersProps {
   onFilterChange: (filters: FilterState) => void;

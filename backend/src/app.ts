@@ -7,8 +7,6 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { generalLimiter, securityHeaders } from './middleware/security';
 import userRoutes from './routes/users';
 import taskRoutes from './routes/tasks';
-
-// Import routes
 import authRoutes from './routes/auth';
 
 const app = express();
@@ -26,7 +24,7 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-  exposedHeaders: ['Set-Cookie']
+  exposedHeaders: ['Set-Cookie'],
 };
 
 app.use(cors(corsOptions));
@@ -40,7 +38,7 @@ app.use(cookieParser());
 app.use(logger);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.status(200).json({
     success: true,
     message: 'Server is healthy',
@@ -48,8 +46,8 @@ app.get('/health', (req, res) => {
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: config.nodeEnv,
-      version: process.env.npm_package_version || '1.0.0'
-    }
+      version: process.env.npm_package_version || '1.0.0',
+    },
   });
 });
 
@@ -59,42 +57,39 @@ app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
 
 // Handle 404 for API routes
-
-app.use('/api', (req, res) => {
-  return notFoundHandler(req, res);
+app.use('/api', (_req, res) => {
+  return notFoundHandler(_req, res);
 });
 
-
-
 // General 404 handler (matches all unmatched routes)
-app.use((req, res) => {
+app.use((_req, res) => {
   res.status(404).json({
     success: false,
     message: 'API endpoint not found',
     data: {
       availableEndpoints: [
-  'GET /health',
-  'POST /api/auth/register',
-  'POST /api/auth/login',
-  'GET /api/auth/profile',
-  'PUT /api/auth/profile',
-  'GET /api/users',
-  'GET /api/users/search?q=searchTerm',
-  'GET /api/users/me/stats',
-  'GET /api/users/:id',
-  'GET /api/users/:id/stats',
-  'DELETE /api/users/:id',
-  'POST /api/tasks',
-  'GET /api/tasks',
-  'GET /api/tasks/statistics',
-  'GET /api/tasks/overdue',
-  'GET /api/tasks/my-tasks',
-  'GET /api/tasks/user-tasks',
-  'GET /api/tasks/:id',
-  'PUT /api/tasks/:id',
-  'DELETE /api/tasks/:id'
-]
-    }
+        'GET /health',
+        'POST /api/auth/register',
+        'POST /api/auth/login',
+        'GET /api/auth/profile',
+        'PUT /api/auth/profile',
+        'GET /api/users',
+        'GET /api/users/search?q=searchTerm',
+        'GET /api/users/me/stats',
+        'GET /api/users/:id',
+        'GET /api/users/:id/stats',
+        'DELETE /api/users/:id',
+        'POST /api/tasks',
+        'GET /api/tasks',
+        'GET /api/tasks/statistics',
+        'GET /api/tasks/overdue',
+        'GET /api/tasks/my-tasks',
+        'GET /api/tasks/user-tasks',
+        'GET /api/tasks/:id',
+        'PUT /api/tasks/:id',
+        'DELETE /api/tasks/:id',
+      ],
+    },
   });
 });
 

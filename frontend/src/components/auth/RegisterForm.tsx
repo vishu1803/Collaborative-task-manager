@@ -68,7 +68,7 @@ export function RegisterForm() {
               type="text"
               autoComplete="name"
               placeholder="Enter your full name"
-              error={errors.name?.message}
+              error={errors.name?.message || ''}
             />
 
             <Input
@@ -77,7 +77,7 @@ export function RegisterForm() {
               type="email"
               autoComplete="email"
               placeholder="Enter your email"
-              error={errors.email?.message}
+              error={errors.email?.message || ''}
             />
 
             <Input
@@ -86,7 +86,7 @@ export function RegisterForm() {
               type="password"
               autoComplete="new-password"
               placeholder="Create a password"
-              error={errors.password?.message}
+              error={errors.password?.message || ''}
             />
 
             <Input
@@ -95,7 +95,7 @@ export function RegisterForm() {
               type="password"
               autoComplete="new-password"
               placeholder="Confirm your password"
-              error={errors.confirmPassword?.message}
+              error={errors.confirmPassword?.message || ''}
             />
           </div>
 

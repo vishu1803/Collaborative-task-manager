@@ -19,9 +19,9 @@ export class AppError extends Error {
 // Error handling middleware
 export const errorHandler = (
   error: Error | AppError,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) => {
   let statusCode = 500;
   let message = 'Internal Server Error';

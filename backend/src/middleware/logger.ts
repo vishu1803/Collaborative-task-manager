@@ -7,7 +7,7 @@ const morganFormat = config.nodeEnv === 'development'
   : 'combined';
 
 // Custom token for response time with color
-morgan.token('status-color', (req, res) => {
+morgan.token('status-color', (_req, res) => {
   const status = res.statusCode;
   if (status >= 500) return `\x1b[31m${status}\x1b[0m`; // Red
   if (status >= 400) return `\x1b[33m${status}\x1b[0m`; // Yellow

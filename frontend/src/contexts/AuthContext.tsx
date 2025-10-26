@@ -71,7 +71,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const register = async (credentials: RegisterCredentials) => {
     try {
-      const response = await authAPI.register(credentials);
+      // add confirmPassword for API
+    const response = await authAPI.register({
+      ...credentials,
+      confirmPassword: credentials.password, // just matches the password
+    });
       
       if (response.success && response.data) {
         const { user, token } = response.data;
