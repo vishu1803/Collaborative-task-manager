@@ -2,12 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../types';
 import { config } from '../config/env';
 
-// Custom error class
+/**
+ * Custom application error for consistent API error handling
+ */
 export class AppError extends Error {
   public statusCode: number;
   public isOperational: boolean;
 
-  constructor(message: string, statusCode: number) {
+  constructor(message: string, statusCode = 400) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;
@@ -16,7 +18,9 @@ export class AppError extends Error {
   }
 }
 
-// Error handling middleware
+/**
+ * Global error handler middleware
+ */
 export const errorHandler = (
   error: Error | AppError,
   _req: Request,
@@ -26,38 +30,22 @@ export const errorHandler = (
   let statusCode = 500;
   let message = 'Internal Server Error';
 
-  // Handle custom AppError
   if (error instanceof AppError) {
     statusCode = error.statusCode;
     message = error.message;
-  }
-  
-  // Handle MongoDB validation errors
-  else if (error.name === 'ValidationError') {
+  } else if (error.name === 'ValidationError') {
     statusCode = 400;
     message = 'Validation Error';
-  }
-  
-  // Handle MongoDB duplicate key errors
-  else if (error.name === 'MongoServerError' && (error as any).code === 11000) {
+  } else if (error.name === 'MongoServerError' && (error as any).code === 11000) {
     statusCode = 400;
     message = 'Duplicate field value';
-  }
-  
-  // Handle MongoDB cast errors (invalid ObjectId)
-  else if (error.name === 'CastError') {
+  } else if (error.name === 'CastError') {
     statusCode = 400;
     message = 'Invalid ID format';
-  }
-  
-  // Handle JWT errors
-  else if (error.name === 'JsonWebTokenError') {
+  } else if (error.name === 'JsonWebTokenError') {
     statusCode = 401;
     message = 'Invalid token';
-  }
-  
-  // Handle JWT expired errors
-  else if (error.name === 'TokenExpiredError') {
+  } else if (error.name === 'TokenExpiredError') {
     statusCode = 401;
     message = 'Token expired';
   }
@@ -65,13 +53,12 @@ export const errorHandler = (
   const response: ApiResponse = {
     success: false,
     message,
-    ...(config.nodeEnv === 'development' && { 
+    ...(config.nodeEnv === 'development' && {
       error: error.message,
-      stack: error.stack 
-    })
+      stack: error.stack,
+    }),
   };
 
-  // Log error in development
   if (config.nodeEnv === 'development') {
     console.error('🔴 Error:', error);
   }
@@ -79,19 +66,22 @@ export const errorHandler = (
   res.status(statusCode).json(response);
 };
 
-// Not found handler
+/**
+ * 404 Not Found Handler
+ */
 export const notFoundHandler = (req: Request, res: Response) => {
   const response: ApiResponse = {
     success: false,
-    message: `Route ${req.originalUrl} not found`
+    message: `Route ${req.originalUrl} not found`,
   };
-  
+
   res.status(404).json(response);
 };
 
-// Async error wrapper
-export const asyncHandler = (fn: Function) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+/**
+ * Async error wrapper
+ */
+export const asyncHandler =
+  (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) =>
+  (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(fn(req, res, next)).catch(next);
-  };
-};

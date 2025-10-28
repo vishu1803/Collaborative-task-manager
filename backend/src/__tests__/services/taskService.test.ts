@@ -57,7 +57,6 @@ describe('TaskService', () => {
 
   describe('getTasks', () => {
     beforeEach(async () => {
-      // Create test tasks
       await TestDataFactory.createTestTask(creator._id, assignee._id, {
         title: 'Task 1',
         priority: TaskPriority.HIGH,
@@ -76,10 +75,7 @@ describe('TaskService', () => {
     });
 
     it('should return all tasks with pagination', async () => {
-      const result = await TaskService.getTasks({
-        page: 1,
-        limit: 10
-      });
+      const result = await TaskService.getTasks({ page: 1, limit: 10 });
 
       expect(result).toBeDefined();
       expect(result.tasks).toHaveLength(3);
@@ -96,7 +92,7 @@ describe('TaskService', () => {
       });
 
       expect(result.tasks).toHaveLength(1);
-      expect(result.tasks![0].status).toBe(TaskStatus.COMPLETED);
+      expect(result.tasks?.[0]?.status).toBe(TaskStatus.COMPLETED);
     });
 
     it('should filter tasks by priority', async () => {
@@ -107,14 +103,12 @@ describe('TaskService', () => {
       });
 
       expect(result.tasks).toHaveLength(1);
-      expect(result.tasks![0].priority).toBe(TaskPriority.URGENT);
+      expect(result.tasks?.[0]?.priority).toBe(TaskPriority.URGENT);
     });
 
+    // ✅ moved this out of the nested test
     it('should paginate results correctly', async () => {
-      const result = await TaskService.getTasks({
-        page: 1,
-        limit: 2
-      });
+      const result = await TaskService.getTasks({ page: 1, limit: 2 });
 
       expect(result.tasks).toHaveLength(2);
       expect(result.pagination.totalTasks).toBe(3);
@@ -132,10 +126,7 @@ describe('TaskService', () => {
     });
 
     it('should update task successfully by creator', async () => {
-      const updates = {
-        title: 'Updated Title',
-        status: TaskStatus.IN_PROGRESS
-      };
+      const updates = { title: 'Updated Title', status: TaskStatus.IN_PROGRESS };
 
       const result = await TaskService.updateTask(
         task._id.toString(),
@@ -148,9 +139,7 @@ describe('TaskService', () => {
     });
 
     it('should update task successfully by assignee', async () => {
-      const updates = {
-        status: TaskStatus.COMPLETED
-      };
+      const updates = { status: TaskStatus.COMPLETED };
 
       const result = await TaskService.updateTask(
         task._id.toString(),
@@ -162,22 +151,16 @@ describe('TaskService', () => {
     });
 
     it('should throw error when user has no permission', async () => {
-      const otherUser = await TestDataFactory.createTestUser({ 
-        email: 'other@example.com' 
-      });
-
-      const updates = {
-        title: 'Unauthorized Update'
-      };
+      const otherUser = await TestDataFactory.createTestUser({ email: 'other@example.com' });
+      const updates = { title: 'Unauthorized Update' };
 
       await expect(
-  TaskService.updateTask(
-    task._id.toString(),
-    updates,
-    (otherUser._id as any).toString()
-  )
-).rejects.toThrow('You do not have permission to update this task');
-
+        TaskService.updateTask(
+          task._id.toString(),
+          updates,
+          (otherUser._id as any).toString()
+        )
+      ).rejects.toThrow('You do not have permission to update this task');
     });
 
     it('should throw error for non-existent task', async () => {
@@ -219,16 +202,9 @@ describe('TaskService', () => {
 
   describe('getTaskStatistics', () => {
     beforeEach(async () => {
-      // Create tasks with different statuses
-      await TestDataFactory.createTestTask(creator._id, assignee._id, {
-        status: TaskStatus.TODO
-      });
-      await TestDataFactory.createTestTask(creator._id, assignee._id, {
-        status: TaskStatus.IN_PROGRESS
-      });
-      await TestDataFactory.createTestTask(creator._id, assignee._id, {
-        status: TaskStatus.COMPLETED
-      });
+      await TestDataFactory.createTestTask(creator._id, assignee._id, { status: TaskStatus.TODO });
+      await TestDataFactory.createTestTask(creator._id, assignee._id, { status: TaskStatus.IN_PROGRESS });
+      await TestDataFactory.createTestTask(creator._id, assignee._id, { status: TaskStatus.COMPLETED });
       await TestDataFactory.createTestTask(creator._id, assignee._id, {
         dueDate: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday (overdue)
         status: TaskStatus.TODO
@@ -244,14 +220,14 @@ describe('TaskService', () => {
       expect(stats.byStatus.inProgress).toBe(1);
       expect(stats.byStatus.completed).toBe(1);
       expect(stats.overdue).toBe(1);
-      expect(stats.completionRate).toBe(25); // 1/4 * 100
+      expect(stats.completionRate).toBe(25);
     });
 
     it('should return statistics for specific user', async () => {
       const stats = await TaskService.getTaskStatistics(assignee._id.toString());
 
       expect(stats).toBeDefined();
-      expect(stats.total).toBe(4); // All tasks are assigned to this user
+      expect(stats.total).toBe(4);
     });
   });
 });

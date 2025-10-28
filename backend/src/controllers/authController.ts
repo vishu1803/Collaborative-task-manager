@@ -2,6 +2,16 @@ import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
 import { ApiResponse } from '../types/api';
 import { asyncHandler } from '../middleware/errorHandler';
+import { AppError } from '../middleware/errorHandler'; // ensure exported from errorHandler.ts
+
+// Extend Request to include authenticated user (from JWT middleware)
+interface AuthenticatedRequest extends Request {
+  user?: {
+    _id: string;
+    email?: string;
+    name?: string;
+  };
+}
 
 export class AuthController {
   static register = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -22,9 +32,10 @@ export class AuthController {
 
       res.status(201).json(response);
     } catch (error: any) {
-      // Handle duplicate email or validation errors
       const statusCode =
-        error.message?.includes('duplicate') || error.code === 11000
+        error instanceof AppError
+          ? error.statusCode
+          : error.code === 11000
           ? 400
           : 500;
 
@@ -56,7 +67,11 @@ export class AuthController {
       res.status(200).json(response);
     } catch (error: any) {
       const statusCode =
-        error.message?.includes('Invalid credentials') ? 401 : 500;
+        error instanceof AppError
+          ? error.statusCode
+          : error.message?.includes('Invalid') 
+          ? 401 
+          : 500;
 
       const response: ApiResponse<null> = {
         success: false,
@@ -68,8 +83,12 @@ export class AuthController {
     }
   });
 
-  static getProfile = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const userId = (req as any).user._id.toString();
+  static getProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const userId = req.user?._id;
+
+    if (!userId) {
+      throw new AppError('User not authenticated', 401);
+    }
 
     const user = await AuthService.getUserProfile(userId);
 
@@ -82,8 +101,13 @@ export class AuthController {
     res.status(200).json(response);
   });
 
-  static updateProfile = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const userId = (req as any).user._id.toString();
+  static updateProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const userId = req.user?._id;
+
+    if (!userId) {
+      throw new AppError('User not authenticated', 401);
+    }
+
     const updates = req.body as { name?: string; email?: string };
 
     const user = await AuthService.updateUserProfile(userId, updates);

@@ -1,33 +1,18 @@
 import { User } from '../models/User';
 import { JWTUtils } from '../utils/jwt';
 import { JWTPayload } from '../types';
-
-/**
- * Custom error class to standardize API errors
- */
-class AppError extends Error {
-  statusCode: number;
-
-  constructor(message: string, statusCode = 400) {
-    super(message);
-    this.statusCode = statusCode;
-    Object.setPrototypeOf(this, new.target.prototype);
-  }
-}
+import { AppError } from '../middleware/errorHandler';  // ✅ use shared error class
 
 export class AuthService {
   static async register(name: string, email: string, password: string) {
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       throw new AppError('User with this email already exists', 400);
     }
 
-    // Create new user
     const user = new User({ name, email, password });
     await user.save();
 
-    // Generate JWT token
     const payload: JWTPayload = {
       userId: (user._id as any).toString(),
       email: user.email,
@@ -42,19 +27,16 @@ export class AuthService {
   }
 
   static async login(email: string, password: string) {
-    // Find user and include password for comparison
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       throw new AppError('Invalid email or password', 401);
     }
 
-    // Compare password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       throw new AppError('Invalid email or password', 401);
     }
 
-    // Generate JWT token
     const payload: JWTPayload = {
       userId: (user._id as any).toString(),
       email: user.email,

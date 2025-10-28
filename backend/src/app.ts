@@ -56,6 +56,20 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
 
+// Base routes for api info
+app.get('/api', (_req, res) => {
+  res.status(200).json({
+    success: true,
+    message: '🚀 Collaborative Task Manager API is running',
+    endpoints: [
+      '/api/auth/register',
+      '/api/auth/login',
+      '/api/tasks',
+      '/api/users'
+    ]
+  });
+});
+
 // Handle 404 for API routes
 app.use('/api', (_req, res) => {
   return notFoundHandler(_req, res);
