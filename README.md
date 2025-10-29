@@ -925,7 +925,7 @@ Error responses:
 
 ## 📁 Project Structure
 
-```
+
 
 collaborative-task-manager/
 ├── README.md
@@ -976,6 +976,8 @@ collaborative-task-manager/
 ├── api/                    \# API documentation
 ├── deployment/             \# Deployment guides
 └── development/            \# Development guides
+
+```
 
 ```
 
