@@ -1,14 +1,13 @@
 FROM node:18
 
-# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
-RUN npm ci --only=production
+# Install ALL dependencies (including devDependencies for build)
+RUN npm ci
 
 # Generate Prisma client
 RUN npx prisma generate
@@ -16,11 +15,12 @@ RUN npx prisma generate
 # Copy source code
 COPY . .
 
-# Build application  
+# Build application (TypeScript now available)
 RUN npm run build
 
-# Expose port
+# Remove devDependencies after build (optional)
+RUN npm prune --production
+
 EXPOSE 5000
 
-# Start command
 CMD ["npm", "start"]
