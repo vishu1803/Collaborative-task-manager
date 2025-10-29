@@ -31,8 +31,8 @@ export const config = {
   port:           parseInt(process.env.PORT || '5000', 10),
   host:           process.env.HOST || (process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost'),
 
-  /* 🗄️ Database */
-  mongoUri:     requireEnv('MONGODB_URI'),
+  /* 🗄️ Database - FIXED: Changed from mongoUri to databaseUrl */
+  databaseUrl:    requireEnv('DATABASE_URL'),
 
   /* 🔐 JWT */
   jwtSecret:      requireEnv('JWT_SECRET'),
@@ -55,8 +55,9 @@ export const config = {
         throw new Error('JWT_SECRET must be at least 32 characters long in production');
       }
 
-      if (!this.mongoUri.includes('mongodb+srv://')) {
-        console.warn('⚠️  Consider using MongoDB Atlas in production for better reliability');
+      // FIXED: Now using this.databaseUrl instead of this.databaseUrl
+      if (!this.databaseUrl.includes('postgresql://')) {
+        console.warn('⚠️  DATABASE_URL should be a PostgreSQL connection string');
       }
     }
 
@@ -65,6 +66,7 @@ export const config = {
     console.log(`🚀 Server Host:         ${this.host}`);
     console.log(`🔌 Server Port:         ${this.port}`);
     console.log(`🔒 CORS Allowed Origin: ${this.frontendUrl}`);
+    console.log(`🗄️ Database:           PostgreSQL`);
     console.log('═══════════════════════════════════════');
   }
 };
