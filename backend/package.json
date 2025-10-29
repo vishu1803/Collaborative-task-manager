@@ -7,7 +7,7 @@
     "dev": "nodemon --exec \"ts-node --type-check src/server.ts\"",
     "build": "prisma generate && tsc",
     "start": "node dist/server.js",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate --no-engine",
     "prod": "npm run build && npm start",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",

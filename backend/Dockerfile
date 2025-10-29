@@ -1,18 +1,20 @@
-# Use official Node.js runtime
 FROM node:18-alpine
+
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl1.1-compat
 
 # Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY prisma/ ./prisma/
+COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --only=production
 
-# Generate Prisma client
-RUN npx prisma generate
+# Generate Prisma client with correct binaries
+RUN npx prisma generate --no-engine
 
 # Copy source code
 COPY . .
@@ -20,23 +22,8 @@ COPY . .
 # Build TypeScript
 RUN npm run build
 
-# Remove dev dependencies to reduce image size
-RUN npm prune --production
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodeuser -u 1001 -G nodejs
-
-# Change ownership
-RUN chown -R nodeuser:nodejs /app
-USER nodeuser
-
 # Expose port
 EXPOSE 5000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:5000/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
-
-# Start application
+# Start command
 CMD ["npm", "start"]
