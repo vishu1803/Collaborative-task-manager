@@ -58,7 +58,7 @@ export default function TasksPage() {
     if (!taskToEdit) return;
 
     try {
-      await updateTask(taskToEdit._id, taskData);
+      await updateTask(taskToEdit.id, taskData);
       setIsEditModalOpen(false);
       setTaskToEdit(null);
     } catch (error) {
@@ -72,7 +72,7 @@ export default function TasksPage() {
     }
 
     try {
-      await deleteTask(task._id);
+      await deleteTask(task.id);
     } catch (error) {
       // Error is handled in the context
     }
@@ -80,7 +80,7 @@ export default function TasksPage() {
 
   const handleStatusChange = async (task: Task, status: TaskStatus) => {
     try {
-      await updateTask(task._id, { status });
+      await updateTask(task.id, { status });
     } catch (error) {
       // Error is handled in the context
     }

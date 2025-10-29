@@ -1,17 +1,8 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
-import { ApiResponse } from '../types/api';
+import { ApiResponse } from '../types';
 import { asyncHandler } from '../middleware/errorHandler';
-import { AppError } from '../middleware/errorHandler'; // ensure exported from errorHandler.ts
-
-// Extend Request to include authenticated user (from JWT middleware)
-interface AuthenticatedRequest extends Request {
-  user?: {
-    _id: string;
-    email?: string;
-    name?: string;
-  };
-}
+import { AppError } from '../middleware/errorHandler';
 
 export class AuthController {
   static register = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -32,17 +23,12 @@ export class AuthController {
 
       res.status(201).json(response);
     } catch (error: any) {
-      const statusCode =
-        error instanceof AppError
-          ? error.statusCode
-          : error.code === 11000
-          ? 400
-          : 500;
+      const statusCode = error instanceof AppError ? error.statusCode : 500;
 
-      const response: ApiResponse<null> = {
+      const response: ApiResponse = {
         success: false,
         message: error.message || 'Registration failed',
-        data: null,
+        error: error.message,
       };
 
       res.status(statusCode).json(response);
@@ -66,43 +52,51 @@ export class AuthController {
 
       res.status(200).json(response);
     } catch (error: any) {
-      const statusCode =
-        error instanceof AppError
-          ? error.statusCode
-          : error.message?.includes('Invalid') 
-          ? 401 
-          : 500;
+      const statusCode = error instanceof AppError ? error.statusCode : 500;
 
-      const response: ApiResponse<null> = {
+      const response: ApiResponse = {
         success: false,
         message: error.message || 'Login failed',
-        data: null,
+        error: error.message,
       };
 
       res.status(statusCode).json(response);
     }
   });
 
-  static getProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    const userId = req.user?._id;
+  static getProfile = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    // Use both id and userId for compatibility
+    const userId = (req.user as any)?.id || (req.user as any)?.userId;
 
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
 
-    const user = await AuthService.getUserProfile(userId);
+    try {
+      const user = await AuthService.getUserProfile(userId);
 
-    const response: ApiResponse<typeof user> = {
-      success: true,
-      message: 'Profile retrieved successfully',
-      data: user,
-    };
+      const response: ApiResponse<typeof user> = {
+        success: true,
+        message: 'Profile retrieved successfully',
+        data: user,
+      };
 
-    res.status(200).json(response);
+      res.status(200).json(response);
+    } catch (error: any) {
+      const statusCode = error instanceof AppError ? error.statusCode : 500;
+
+      const response: ApiResponse = {
+        success: false,
+        message: error.message || 'Failed to retrieve profile',
+        error: error.message,
+      };
+
+      res.status(statusCode).json(response);
+    }
   });
 
-  static updateProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    const userId = req.user?._id;
+  static updateProfile = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const userId = (req.user as any)?.id || (req.user as any)?.userId;
 
     if (!userId) {
       throw new AppError('User not authenticated', 401);
@@ -110,14 +104,65 @@ export class AuthController {
 
     const updates = req.body as { name?: string; email?: string };
 
-    const user = await AuthService.updateUserProfile(userId, updates);
+    try {
+      const user = await AuthService.updateUserProfile(userId, updates);
 
-    const response: ApiResponse<typeof user> = {
+      const response: ApiResponse<typeof user> = {
+        success: true,
+        message: 'Profile updated successfully',
+        data: user,
+      };
+
+      res.status(200).json(response);
+    } catch (error: any) {
+      const statusCode = error instanceof AppError ? error.statusCode : 500;
+
+      const response: ApiResponse = {
+        success: false,
+        message: error.message || 'Failed to update profile',
+        error: error.message,
+      };
+
+      res.status(statusCode).json(response);
+    }
+  });
+
+  static logout = asyncHandler(async (_req: Request, res: Response): Promise<void> => {
+    const response: ApiResponse = {
       success: true,
-      message: 'Profile updated successfully',
-      data: user,
+      message: 'Logged out successfully',
     };
 
     res.status(200).json(response);
+  });
+
+  static refreshToken = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const userId = (req.user as any)?.id || (req.user as any)?.userId;
+
+    if (!userId) {
+      throw new AppError('User not authenticated', 401);
+    }
+
+    try {
+      const user = await AuthService.getUserProfile(userId);
+      
+      const response: ApiResponse<typeof user> = {
+        success: true,
+        message: 'Token refreshed successfully', 
+        data: user,
+      };
+
+      res.status(200).json(response);
+    } catch (error: any) {
+      const statusCode = error instanceof AppError ? error.statusCode : 500;
+
+      const response: ApiResponse = {
+        success: false,
+        message: error.message || 'Failed to refresh token',
+        error: error.message,
+      };
+
+      res.status(statusCode).json(response);
+    }
   });
 }

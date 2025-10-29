@@ -31,5 +31,5 @@ export const handleSocketConnection = (socket: AuthenticatedSocket): void => {
   });
 
   // Log connection
-  console.log(`🔌 Socket connected: ${socket.user.name} (${socket.id})`);
+  console.log(`🔌 Socket connected: ${socket.user?.name || 'Unknown'} (${socket.id})`);
 };

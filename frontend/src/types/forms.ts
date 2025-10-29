@@ -8,10 +8,10 @@ export const loginSchema = z.object({
     .min(1, 'Email is required')
     .email('Invalid email address')
     .max(255, 'Email too long'),
-  password: z
+  password: z                                          
     .string()
     .min(1, 'Password is required')
-    .min(6, 'Password must be at least 6 characters')
+    .min(6, 'Password must be at least 6 characters')  
     .max(128, 'Password too long'),
 });
 
@@ -20,8 +20,8 @@ export const registerSchema = z
     name: z
       .string()
       .min(1, 'Name is required')
-      .min(2, 'Name must be at least 2 characters')
-      .max(50, 'Name cannot exceed 50 characters')
+      .min(2, 'Name must be at least 2 characters')    
+      .max(50, 'Name cannot exceed 50 characters')     
       .regex(/^[a-zA-Z\s]+$/, 'Name can only contain letters and spaces'),
     email: z
       .string()
@@ -44,8 +44,8 @@ export const updateProfileSchema = z
   .object({
     name: z
       .string()
-      .min(2, 'Name must be at least 2 characters')
-      .max(50, 'Name cannot exceed 50 characters')
+      .min(2, 'Name must be at least 2 characters')    
+      .max(50, 'Name cannot exceed 50 characters')     
       .regex(/^[a-zA-Z\s]+$/, 'Name can only contain letters and spaces')
       .optional(),
     email: z
@@ -61,7 +61,7 @@ export const createTaskSchema = z
     title: z
       .string()
       .min(1, 'Title is required')
-      .max(100, 'Title cannot exceed 100 characters')
+      .max(100, 'Title cannot exceed 100 characters')  
       .trim(),
     description: z
       .string()
@@ -80,7 +80,7 @@ export const createTaskSchema = z
     assignedToId: z
       .string()
       .min(1, 'Please select an assignee')
-      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid user ID format'),
+      .regex(/^c[a-zA-Z0-9]{24}$/, 'Invalid user ID format'), // ✅ Fixed for CUID
   })
   .strict();
 
@@ -89,7 +89,7 @@ export const updateTaskSchema = z
     title: z
       .string()
       .min(1, 'Title is required')
-      .max(100, 'Title cannot exceed 100 characters')
+      .max(100, 'Title cannot exceed 100 characters')  
       .trim()
       .optional(),
     description: z
@@ -101,17 +101,17 @@ export const updateTaskSchema = z
     dueDate: z
       .string()
       .refine((date) => {
-        if (!date) return true; // Optional field
+        if (!date) return true; // Optional field      
         const selectedDate = new Date(date);
         const now = new Date();
         return selectedDate > now;
       }, 'Due date must be in the future')
       .optional(),
-    priority: z.nativeEnum(TaskPriority).optional(),
-    status: z.nativeEnum(TaskStatus).optional(),
+    priority: z.nativeEnum(TaskPriority).optional(),   
+    status: z.nativeEnum(TaskStatus).optional(),       
     assignedToId: z
       .string()
-      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid user ID format')
+      .regex(/^c[a-zA-Z0-9]{24}$/, 'Invalid user ID format') // ✅ Fixed for CUID
       .optional(),
   })
   .strict();

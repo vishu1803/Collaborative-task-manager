@@ -27,8 +27,8 @@ class SocketManager {
     const user: SocketUser = {
       userId,
       socketId,
-      email: socket.user.email,
-      name: socket.user.name
+      email: socket.user?.email || '',
+      name: socket.user?.name || ''
     };
 
     this.connectedUsers.set(socketId, user);

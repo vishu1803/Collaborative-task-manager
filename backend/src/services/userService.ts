@@ -1,29 +1,42 @@
-import { User, IUser } from '../models/User';
+import { prisma } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
-import mongoose from 'mongoose';
+import { Status } from '@prisma/client';
 
 export class UserService {
-  static async getAllUsers(excludeUserId?: string): Promise<IUser[]> {
+  static async getAllUsers(excludeUserId?: string) {
     try {
-      const query = excludeUserId ? { _id: { $ne: excludeUserId } } : {};
+      const where = excludeUserId ? { id: { not: excludeUserId } } : {};
       
-      const users = await User.find(query, 'name email _id createdAt')
-        .sort({ name: 1 })
-        .lean<IUser[]>(); // Cast result to IUser[]
+      const users = await prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+        },
+        orderBy: { name: 'asc' },
+      });
       
       return users;
     } catch (error) {
+      console.error('Get all users error:', error);
       throw new AppError('Failed to retrieve users', 500);
     }
   }
 
-  static async getUserById(userId: string): Promise<IUser> {
+  static async getUserById(userId: string) {
     try {
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        throw new AppError('Invalid user ID format', 400);
-      }
-
-      const user = await User.findById(userId, 'name email _id createdAt updatedAt');
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
       
       if (!user) {
         throw new AppError('User not found', 404);
@@ -34,144 +47,120 @@ export class UserService {
       if (error instanceof AppError) {
         throw error;
       }
+      console.error('Get user by ID error:', error);
       throw new AppError('Failed to retrieve user', 500);
     }
   }
 
-  static async searchUsers(searchTerm: string, excludeUserId?: string): Promise<IUser[]> {
+  static async searchUsers(searchTerm: string, excludeUserId?: string) {
     try {
-      const searchRegex = new RegExp(searchTerm, 'i'); // Case-insensitive search
-      
-      const query: any = {
-        $or: [
-          { name: { $regex: searchRegex } },
-          { email: { $regex: searchRegex } }
+      const where: any = {
+        OR: [
+          { name: { contains: searchTerm, mode: 'insensitive' } },
+          { email: { contains: searchTerm, mode: 'insensitive' } }
         ]
       };
 
       if (excludeUserId) {
-        query._id = { $ne: excludeUserId };
+        where.id = { not: excludeUserId };
       }
 
-      const users = await User.find(query, 'name email _id')
-        .sort({ name: 1 })
-        .limit(20) // Limit results
-        .lean<IUser[]>(); // Cast result to IUser[]
+      const users = await prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+        orderBy: { name: 'asc' },
+        take: 20, // Limit results
+      });
 
       return users;
     } catch (error) {
+      console.error('Search users error:', error);
       throw new AppError('Failed to search users', 500);
     }
   }
 
-  static async getUserStats(userId: string): Promise<any> {
+  static async getUserStats(userId: string) {
     try {
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        throw new AppError('Invalid user ID format', 400);
-      }
-
-      const { Task } = require('../models/Task');
-      const userObjectId = new mongoose.Types.ObjectId(userId);
-      
-      const [user, taskStats] = await Promise.all([
-        User.findById(userId, 'name email _id createdAt'),
-        Task.aggregate([
-          {
-            $match: {
-              $or: [
-                { creatorId: userObjectId },
-                { assignedToId: userObjectId }
-              ]
-            }
+      const [user, taskCounts] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
           },
-          {
-            $group: {
-              _id: null,
-              totalCreated: {
-                $sum: {
-                  $cond: [{ $eq: ['$creatorId', userObjectId] }, 1, 0]
-                }
-              },
-              totalAssigned: {
-                $sum: {
-                  $cond: [{ $eq: ['$assignedToId', userObjectId] }, 1, 0]
-                }
-              },
-              completedTasks: {
-                $sum: {
-                  $cond: [
-                    {
-                      $and: [
-                        { $eq: ['$assignedToId', userObjectId] },
-                        { $eq: ['$status', 'Completed'] }
-                      ]
-                    },
-                    1,
-                    0
-                  ]
-                }
-              },
-              overdueTasks: {
-                $sum: {
-                  $cond: [
-                    {
-                      $and: [
-                        { $eq: ['$assignedToId', userObjectId] },
-                        { $lt: ['$dueDate', new Date()] },
-                        { $ne: ['$status', 'Completed'] }
-                      ]
-                    },
-                    1,
-                    0
-                  ]
-                }
-              }
-            }
-          }
-        ])
+        }),
+        Promise.all([
+          // Total created tasks
+          prisma.task.count({
+            where: { creatorId: userId },
+          }),
+          // Total assigned tasks
+          prisma.task.count({
+            where: { assignedToId: userId },
+          }),
+          // Completed tasks (assigned to user)
+          prisma.task.count({
+            where: {
+              assignedToId: userId,
+              status: Status.COMPLETED,
+            },
+          }),
+          // Overdue tasks (assigned to user)
+          prisma.task.count({
+            where: {
+              assignedToId: userId,
+              dueDate: { lt: new Date() },
+              status: { not: Status.COMPLETED },
+            },
+          }),
+        ]),
       ]);
 
       if (!user) {
         throw new AppError('User not found', 404);
       }
 
-      const stats = taskStats[0] || {
-        totalCreated: 0,
-        totalAssigned: 0,
-        completedTasks: 0,
-        overdueTasks: 0
-      };
+      const [totalCreated, totalAssigned, completedTasks, overdueTasks] = taskCounts;
+
+      const completionRate = totalAssigned > 0 
+        ? Math.round((completedTasks / totalAssigned) * 100)
+        : 0;
 
       return {
         user,
         statistics: {
-          ...stats,
-          completionRate: stats.totalAssigned > 0 
-            ? Math.round((stats.completedTasks / stats.totalAssigned) * 100)
-            : 0
-        }
+          totalCreated,
+          totalAssigned,
+          completedTasks,
+          overdueTasks,
+          completionRate,
+        },
       };
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
       }
+      console.error('Get user stats error:', error);
       throw new AppError('Failed to retrieve user statistics', 500);
     }
   }
 
   static async deleteUser(userId: string): Promise<void> {
     try {
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        throw new AppError('Invalid user ID format', 400);
-      }
-
-      const { Task } = require('../models/Task');
-
-      const userTasks = await Task.findOne({
-        $or: [
-          { creatorId: userId },
-          { assignedToId: userId }
-        ]
+      // Check if user has any tasks (as creator or assignee)
+      const userTasks = await prisma.task.findFirst({
+        where: {
+          OR: [
+            { creatorId: userId },
+            { assignedToId: userId }
+          ]
+        }
       });
 
       if (userTasks) {
@@ -181,7 +170,10 @@ export class UserService {
         );
       }
 
-      const deletedUser = await User.findByIdAndDelete(userId);
+      // Delete the user
+      const deletedUser = await prisma.user.delete({
+        where: { id: userId },
+      });
       
       if (!deletedUser) {
         throw new AppError('User not found', 404);
@@ -190,7 +182,131 @@ export class UserService {
       if (error instanceof AppError) {
         throw error;
       }
+      
+      // Handle Prisma not found error
+      if ((error as any).code === 'P2025') {
+        throw new AppError('User not found', 404);
+      }
+      
+      console.error('Delete user error:', error);
       throw new AppError('Failed to delete user', 500);
+    }
+  }
+
+  static async updateUser(userId: string, updates: {
+    name?: string;
+    email?: string;
+  }) {
+    try {
+      // Check if email is already taken by another user
+      if (updates.email) {
+        const existingUser = await prisma.user.findFirst({
+          where: {
+            email: updates.email,
+            id: { not: userId },
+          },
+        });
+
+        if (existingUser) {
+          throw new AppError('Email is already taken by another user', 400);
+        }
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: updates,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      return updatedUser;
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      
+      // Handle Prisma not found error
+      if ((error as any).code === 'P2025') {
+        throw new AppError('User not found', 404);
+      }
+      
+      // Handle unique constraint error
+      if ((error as any).code === 'P2002') {
+        throw new AppError('Email is already taken', 400);
+      }
+      
+      console.error('Update user error:', error);
+      throw new AppError('Failed to update user', 500);
+    }
+  }
+
+  static async getUserWithTasks(userId: string, taskType: 'created' | 'assigned' | 'all' = 'all') {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+        },
+      });
+
+      if (!user) {
+        throw new AppError('User not found', 404);
+      }
+
+      let taskWhere: any = {};
+
+      switch (taskType) {
+        case 'created':
+          taskWhere = { creatorId: userId };
+          break;
+        case 'assigned':
+          taskWhere = { assignedToId: userId };
+          break;
+        case 'all':
+        default:
+          taskWhere = {
+            OR: [
+              { creatorId: userId },
+              { assignedToId: userId }
+            ]
+          };
+          break;
+      }
+
+      const tasks = await prisma.task.findMany({
+        where: taskWhere,
+        include: {
+          creator: {
+            select: { id: true, name: true, email: true },
+          },
+          assignedTo: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+        orderBy: [
+          { dueDate: 'asc' },
+          { createdAt: 'desc' },
+        ],
+      });
+
+      return {
+        user,
+        tasks,
+      };
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      console.error('Get user with tasks error:', error);
+      throw new AppError('Failed to retrieve user with tasks', 500);
     }
   }
 }

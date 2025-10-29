@@ -24,8 +24,8 @@ describe('TaskService', () => {
         description: 'Test description',
         dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         priority: TaskPriority.HIGH,
-        assignedToId: assignee._id.toString(),
-        creatorId: creator._id.toString()
+        assignedToId: assignee.id.toString(),
+        creatorId: creator.id.toString()
       };
 
       const result = await TaskService.createTask(taskData);
@@ -46,7 +46,7 @@ describe('TaskService', () => {
         dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         priority: TaskPriority.HIGH,
         assignedToId: '507f1f77bcf86cd799439011', // Non-existent ID
-        creatorId: creator._id.toString()
+        creatorId: creator.id.toString()
       };
 
       await expect(
@@ -57,17 +57,17 @@ describe('TaskService', () => {
 
   describe('getTasks', () => {
     beforeEach(async () => {
-      await TestDataFactory.createTestTask(creator._id, assignee._id, {
+      await TestDataFactory.createTestTask(creator.id, assignee.id, {
         title: 'Task 1',
         priority: TaskPriority.HIGH,
         status: TaskStatus.TODO
       });
-      await TestDataFactory.createTestTask(creator._id, assignee._id, {
+      await TestDataFactory.createTestTask(creator.id, assignee.id, {
         title: 'Task 2',
         priority: TaskPriority.LOW,
         status: TaskStatus.COMPLETED
       });
-      await TestDataFactory.createTestTask(creator._id, assignee._id, {
+      await TestDataFactory.createTestTask(creator.id, assignee.id, {
         title: 'Task 3',
         priority: TaskPriority.URGENT,
         status: TaskStatus.IN_PROGRESS
@@ -122,16 +122,16 @@ describe('TaskService', () => {
     let task: any;
 
     beforeEach(async () => {
-      task = await TestDataFactory.createTestTask(creator._id, assignee._id);
+      task = await TestDataFactory.createTestTask(creator.id, assignee.id);
     });
 
     it('should update task successfully by creator', async () => {
       const updates = { title: 'Updated Title', status: TaskStatus.IN_PROGRESS };
 
       const result = await TaskService.updateTask(
-        task._id.toString(),
+        task.id.toString(),
         updates,
-        creator._id.toString()
+        creator.id.toString()
       );
 
       expect(result.title).toBe(updates.title);
@@ -142,9 +142,9 @@ describe('TaskService', () => {
       const updates = { status: TaskStatus.COMPLETED };
 
       const result = await TaskService.updateTask(
-        task._id.toString(),
+        task.id.toString(),
         updates,
-        assignee._id.toString()
+        assignee.id.toString()
       );
 
       expect(result.status).toBe(updates.status);
@@ -156,9 +156,9 @@ describe('TaskService', () => {
 
       await expect(
         TaskService.updateTask(
-          task._id.toString(),
+          task.id.toString(),
           updates,
-          (otherUser._id as any).toString()
+          (otherUser.id as any).toString()
         )
       ).rejects.toThrow('You do not have permission to update this task');
     });
@@ -167,7 +167,7 @@ describe('TaskService', () => {
       const fakeId = '507f1f77bcf86cd799439011';
 
       await expect(
-        TaskService.updateTask(fakeId, { title: 'Update' }, creator._id.toString())
+        TaskService.updateTask(fakeId, { title: 'Update' }, creator.id.toString())
       ).rejects.toThrow('Task not found');
     });
   });
@@ -176,18 +176,18 @@ describe('TaskService', () => {
     let task: any;
 
     beforeEach(async () => {
-      task = await TestDataFactory.createTestTask(creator._id, assignee._id);
+      task = await TestDataFactory.createTestTask(creator.id, assignee.id);
     });
 
     it('should delete task successfully by creator', async () => {
       await expect(
-        TaskService.deleteTask(task._id.toString(), creator._id.toString())
+        TaskService.deleteTask(task.id.toString(), creator.id.toString())
       ).resolves.not.toThrow();
     });
 
     it('should throw error when non-creator tries to delete', async () => {
       await expect(
-        TaskService.deleteTask(task._id.toString(), assignee._id.toString())
+        TaskService.deleteTask(task.id.toString(), assignee.id.toString())
       ).rejects.toThrow('Only the task creator can delete this task');
     });
 
@@ -195,17 +195,17 @@ describe('TaskService', () => {
       const fakeId = '507f1f77bcf86cd799439011';
 
       await expect(
-        TaskService.deleteTask(fakeId, creator._id.toString())
+        TaskService.deleteTask(fakeId, creator.id.toString())
       ).rejects.toThrow('Task not found');
     });
   });
 
   describe('getTaskStatistics', () => {
     beforeEach(async () => {
-      await TestDataFactory.createTestTask(creator._id, assignee._id, { status: TaskStatus.TODO });
-      await TestDataFactory.createTestTask(creator._id, assignee._id, { status: TaskStatus.IN_PROGRESS });
-      await TestDataFactory.createTestTask(creator._id, assignee._id, { status: TaskStatus.COMPLETED });
-      await TestDataFactory.createTestTask(creator._id, assignee._id, {
+      await TestDataFactory.createTestTask(creator.id, assignee.id, { status: TaskStatus.TODO });
+      await TestDataFactory.createTestTask(creator.id, assignee.id, { status: TaskStatus.IN_PROGRESS });
+      await TestDataFactory.createTestTask(creator.id, assignee.id, { status: TaskStatus.COMPLETED });
+      await TestDataFactory.createTestTask(creator.id, assignee.id, {
         dueDate: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday (overdue)
         status: TaskStatus.TODO
       });
@@ -224,7 +224,7 @@ describe('TaskService', () => {
     });
 
     it('should return statistics for specific user', async () => {
-      const stats = await TaskService.getTaskStatistics(assignee._id.toString());
+      const stats = await TaskService.getTaskStatistics(assignee.id.toString());
 
       expect(stats).toBeDefined();
       expect(stats.total).toBe(4);

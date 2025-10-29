@@ -2,124 +2,241 @@ import { Request, Response } from 'express';
 import { UserService } from '../services/userService';
 import { ApiResponse } from '../types';
 import { asyncHandler } from '../middleware/errorHandler';
+import { AppError } from '../middleware/errorHandler';
 
 export class UserController {
-  static getAllUsers = asyncHandler(async (req: Request, res: Response) => {
-    const currentUserId = (req.user as any)._id.toString();
-    const { includeMe } = req.query;
-    const excludeUserId = includeMe === 'true' ? undefined : currentUserId;
-    
-    const users = await UserService.getAllUsers(excludeUserId);
-    
-    const response: ApiResponse = {
-      success: true,
-      message: 'Users retrieved successfully',
-      data: {
-        users,
-        total: users.length
-      }
-    };
-    
-    return res.status(200).json(response);
-  });
+  static getAllUsers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const currentUserId = (req.user as any)?.id || (req.user as any)?.userId;
+    const { includeMe = false } = req.query;
 
-  static getUserById = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    if (!id) {
-      return res.status(400).json({ success: false, message: 'User ID is required' });
-    }
-    const user = await UserService.getUserById(id as string);
-    
-    const response: ApiResponse = {
-      success: true,
-      message: 'User retrieved successfully',
-      data: user
-    };
-    
-    return res.status(200).json(response);
-  });
+    try {
+      const users = await UserService.getAllUsers();
+      
+      const filteredUsers = includeMe === 'true' || !currentUserId
+        ? users 
+        : users.filter(user => user.id !== currentUserId);
 
-  static searchUsers = asyncHandler(async (req: Request, res: Response) => {
-    const { q: searchTerm } = req.query;
-    const currentUserId = (req.user as any)._id.toString();
-    const { includeMe } = req.query;
+      const response: ApiResponse = {
+        success: true,
+        message: 'Users retrieved successfully',
+        data: filteredUsers
+      };
 
-    if (!searchTerm || typeof searchTerm !== 'string') {
+      res.status(200).json(response);
+    } catch (error: any) {
+      const statusCode = error instanceof AppError ? error.statusCode : 500;
+
       const response: ApiResponse = {
         success: false,
-        message: 'Search term is required'
+        message: error.message || 'Failed to retrieve users',
+        error: error.message
       };
-      return res.status(400).json(response);
+
+      res.status(statusCode).json(response);
     }
-
-    if (searchTerm.length < 2) {
-      const response: ApiResponse = {
-        success: false,
-        message: 'Search term must be at least 2 characters long'
-      };
-      return res.status(400).json(response);
-    }
-
-    const excludeUserId = includeMe === 'true' ? undefined : currentUserId;
-    const users = await UserService.searchUsers(searchTerm, excludeUserId);
-
-    const response: ApiResponse = {
-      success: true,
-      message: 'User search completed successfully',
-      data: {
-        users,
-        total: users.length,
-        searchTerm
-      }
-    };
-
-    return res.status(200).json(response);
   });
 
-  static getUserStats = asyncHandler(async (req: Request, res: Response) => {
+  static getUserById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    //const _currentUserId = (req.user as any)._id.toString(); // unused, prefixed with _
-
-    const userStats = await UserService.getUserStats(id as string);
-
-    const response: ApiResponse = {
-      success: true,
-      message: 'User statistics retrieved successfully',
-      data: userStats
-    };
-
-    return res.status(200).json(response);
-  });
-
-  static getCurrentUserStats = asyncHandler(async (req: Request, res: Response) => {
-    const currentUserId = (req.user as any)._id.toString();
-
-    const userStats = await UserService.getUserStats(currentUserId);
-
-    const response: ApiResponse = {
-      success: true,
-      message: 'Your statistics retrieved successfully',
-      data: userStats
-    };
-
-    return res.status(200).json(response);
-  });
-
-  static deleteUser = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    //const _currentUserId = (req.user as any)._id.toString(); // unused, prefixed with _
 
     if (!id) {
-      return res.status(400).json({ success: false, message: 'User ID is required' });
+      throw new AppError('User ID is required', 400);
     }
 
-    await UserService.deleteUser(id as string);
+    try {
+      const user = await UserService.getUserById(id);
+
+      const response: ApiResponse = {
+        success: true,
+        message: 'User retrieved successfully',
+        data: user
+      };
+
+      res.status(200).json(response);
+    } catch (error: any) {
+      const statusCode = error instanceof AppError ? error.statusCode : 500;
+
+      const response: ApiResponse = {
+        success: false,
+        message: error.message || 'Failed to retrieve user',
+        error: error.message
+      };
+
+      res.status(statusCode).json(response);
+    }
+  });
+
+  static updateUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const updates = req.body;
+    const currentUserId = (req.user as any)?.id || (req.user as any)?.userId;
+
+    if (!id) {
+      throw new AppError('User ID is required', 400);
+    }
+
+    if (id !== currentUserId) {
+      throw new AppError('You can only update your own profile', 403);
+    }
+
+    try {
+      const user = await UserService.updateUser(id, updates);
+
+      const response: ApiResponse = {
+        success: true,
+        message: 'User updated successfully',
+        data: user
+      };
+
+      res.status(200).json(response);
+    } catch (error: any) {
+      const statusCode = error instanceof AppError ? error.statusCode : 500;
+
+      const response: ApiResponse = {
+        success: false,
+        message: error.message || 'Failed to update user',
+        error: error.message
+      };
+
+      res.status(statusCode).json(response);
+    }
+  });
+
+  static deleteUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const currentUserId = (req.user as any)?.id || (req.user as any)?.userId;
+
+    if (!id) {
+      throw new AppError('User ID is required', 400);
+    }
+
+    if (id !== currentUserId) {
+      throw new AppError('You can only delete your own account', 403);
+    }
+
+    try {
+      await UserService.deleteUser(id);
+
+      const response: ApiResponse = {
+        success: true,
+        message: 'User deleted successfully'
+      };
+
+      res.status(200).json(response);
+    } catch (error: any) {
+      const statusCode = error instanceof AppError ? error.statusCode : 500;
+
+      const response: ApiResponse = {
+        success: false,
+        message: error.message || 'Failed to delete user',
+        error: error.message
+      };
+
+      res.status(statusCode).json(response);
+    }
+  });
+
+  static getUserStats = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const currentUserId = (req.user as any)?.id || (req.user as any)?.userId;
+
+    const targetUserId = id || currentUserId;
+
+    if (!targetUserId) {
+      throw new AppError('User ID is required', 400);
+    }
+
+    try {
+      const stats = await UserService.getUserStats(targetUserId);
+
+      const response: ApiResponse = {
+        success: true,
+        message: 'User statistics retrieved successfully',
+        data: stats
+      };
+
+      res.status(200).json(response);
+    } catch (error: any) {
+      const statusCode = error instanceof AppError ? error.statusCode : 500;
+
+      const response: ApiResponse = {
+        success: false,
+        message: error.message || 'Failed to retrieve user statistics',
+        error: error.message
+      };
+
+      res.status(statusCode).json(response);
+    }
+  });
+
+  // NEW: Search users method
+  
+static searchUsers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const { q } = req.query;
+  const query = q as string;
+  const currentUserId = (req.user as any)?.id || (req.user as any)?.userId;
+
+  if (!query || query.trim().length < 2) {
+    const response: ApiResponse = {
+      success: false,
+      message: 'Search query must be at least 2 characters long'
+    };
+    res.status(400).json(response);
+    return;
+  }
+
+  try {
+    const users = await UserService.searchUsers(query.trim(), currentUserId);
 
     const response: ApiResponse = {
       success: true,
-      message: 'Account deleted successfully'
+      message: 'Users found successfully',
+      data: users
     };
 
-    return res.status(200).json(response);
+    res.status(200).json(response);
+  } catch (error: any) {
+    const statusCode = error instanceof AppError ? error.statusCode : 500;
+
+    const response: ApiResponse = {
+      success: false,
+      message: error.message || 'Failed to search users',
+      error: error.message
+    };
+
+    res.status(statusCode).json(response);
+  }
+});
+
+
+  // NEW: Get current user stats method
+  static getCurrentUserStats = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const currentUserId = (req.user as any)?.id || (req.user as any)?.userId;
+
+    if (!currentUserId) {
+      throw new AppError('User not authenticated', 401);
+    }
+
+    try {
+      const stats = await UserService.getUserStats(currentUserId);
+
+      const response: ApiResponse = {
+        success: true,
+        message: 'Current user statistics retrieved successfully',
+        data: stats
+      };
+
+      res.status(200).json(response);
+    } catch (error: any) {
+      const statusCode = error instanceof AppError ? error.statusCode : 500;
+
+      const response: ApiResponse = {
+        success: false,
+        message: error.message || 'Failed to retrieve user statistics',
+        error: error.message
+      };
+
+      res.status(statusCode).json(response);
+    }
   });
 }

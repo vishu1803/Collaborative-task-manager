@@ -58,7 +58,7 @@ export function OverdueTasks({ onEditTask }: OverdueTasksProps) {
         <div className="space-y-3">
           {displayTasks.map((task) => (
             <div
-              key={task._id}
+              key={task.id}
               className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg"
             >
               <div className="flex-1 min-w-0">

@@ -1,4 +1,4 @@
-import morgan from 'morgan';
+import morgan = require('morgan');
 import { config } from '../config/env';
 
 // Create custom morgan format

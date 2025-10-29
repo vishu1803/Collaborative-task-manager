@@ -57,7 +57,7 @@ export const createTaskSchema = z.object({
   assignedToId: z
     .string()
     .min(1, 'Please select an assignee')
-    .regex(/^[0-9a-fA-F]{24}$/, 'Invalid user ID format'),
+    .regex(/^c[a-zA-Z0-9]{24}$/, 'Invalid user ID format'), // ✅ Fixed for CUID
 });
 
 // Update Task schema

@@ -1,6 +1,6 @@
 // User types
 export interface User {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   createdAt: string;
@@ -31,21 +31,21 @@ export interface RegisterCredentials {
 
 // Task types
 export enum TaskStatus {
-  TODO = 'Todo',
-  IN_PROGRESS = 'In Progress',
-  REVIEW = 'Review',
-  COMPLETED = 'Completed'
+  TODO = 'TODO',
+  IN_PROGRESS = 'IN_PROGRESS',
+  REVIEW = 'REVIEW', 
+  COMPLETED = 'COMPLETED'
 }
 
 export enum TaskPriority {
-  LOW = 'Low',
-  MEDIUM = 'Medium',
-  HIGH = 'High',
-  URGENT = 'Urgent'
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  URGENT = 'URGENT'
 }
 
 export interface Task {
-  _id: string;
+  id: string;
   title: string;
   description: string;
   dueDate: string;

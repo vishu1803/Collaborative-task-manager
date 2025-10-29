@@ -175,7 +175,7 @@ export const taskAPI = {
 // User API
 export interface UsersResponse {
   users: Array<{
-    _id: string;
+    id: string;
     name: string;
     email: string;
   }>;

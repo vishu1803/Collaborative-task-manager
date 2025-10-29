@@ -1,7 +1,10 @@
-import { Task, ITask } from '../models/Task';
-import { TaskStatus, TaskPriority } from '../types';
+import { prisma } from '../config/database';
+import { Priority, Status, Prisma } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
-import mongoose from 'mongoose';
+
+// Update to match Prisma enums
+export type TaskStatus = Status;
+export type TaskPriority = Priority;
 
 interface TaskFilters {
   status?: TaskStatus;
@@ -27,45 +30,65 @@ export class TaskService {
     priority: TaskPriority;
     assignedToId: string;
     creatorId: string;
-  }): Promise<ITask> {
+  }) {
     try {
       // Validate assignedToId exists
-      const { User } = require('../models/User');
-      const assignedUser = await User.findById(taskData.assignedToId);
+      const assignedUser = await prisma.user.findUnique({
+        where: { id: taskData.assignedToId }
+      });
+      
       if (!assignedUser) {
         throw new AppError('Assigned user not found', 404);
       }
 
-      const task = new Task({
-        ...taskData,
-        dueDate: new Date(taskData.dueDate),
-        status: TaskStatus.TODO
+      // Validate creatorId exists
+      const creator = await prisma.user.findUnique({
+        where: { id: taskData.creatorId }
       });
-
-      await task.save();
       
-      // Populate user data for response
-      await task.populate('creatorId assignedToId', 'name email');
+      if (!creator) {
+        throw new AppError('Creator user not found', 404);
+      }
+
+      const task = await prisma.task.create({
+        data: {
+          title: taskData.title,
+          description: taskData.description,
+          dueDate: new Date(taskData.dueDate),
+          priority: taskData.priority,
+          status: Status.TODO,
+          creatorId: taskData.creatorId,
+          assignedToId: taskData.assignedToId,
+        },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          assignedTo: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
       
       return task;
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
       }
+      console.error('Create task error:', error);
       throw new AppError('Failed to create task', 500);
     }
   }
 
-  static async getTasks(options: TaskQueryOptions = {}): Promise<{
-    tasks: ITask[];
-    pagination: {
-      currentPage: number;
-      totalPages: number;
-      totalTasks: number;
-      hasNext: boolean;
-      hasPrev: boolean;
-    };
-  }> {
+  static async getTasks(options: TaskQueryOptions = {}) {
     try {
       const {
         page = 1,
@@ -75,73 +98,87 @@ export class TaskService {
         filters = {}
       } = options;
 
-      // Build query
-      const query: any = {};
+      // Build where clause
+      const where: Prisma.TaskWhereInput = {};
 
       if (filters.status) {
-        query.status = filters.status;
+        where.status = filters.status;
       }
 
       if (filters.priority) {
-        query.priority = filters.priority;
+        where.priority = filters.priority;
       }
 
       if (filters.assignedToId) {
-        query.assignedToId = filters.assignedToId;
+        where.assignedToId = filters.assignedToId;
       }
 
       if (filters.creatorId) {
-        query.creatorId = filters.creatorId;
+        where.creatorId = filters.creatorId;
       }
 
       if (filters.overdue) {
-        query.dueDate = { $lt: new Date() };
-        query.status = { $ne: TaskStatus.COMPLETED };
+        where.dueDate = { lt: new Date() };
+        where.status = { not: Status.COMPLETED };
       }
 
-      // Build sort object
-      const sort: any = {};
-      sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+      // Build orderBy
+      const orderBy: any = {};
+      orderBy[sortBy] = sortOrder;
 
       // Calculate pagination
       const skip = (page - 1) * limit;
 
       // Execute queries
       const [tasks, totalTasks] = await Promise.all([
-        Task.find(query)
-          .populate('creatorId assignedToId', 'name email')
-          .sort(sort)
-          .skip(skip)
-          .limit(limit)
-          .lean(),
-        Task.countDocuments(query)
+        prisma.task.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy,
+          include: {
+            creator: {
+              select: { id: true, name: true, email: true },
+            },
+            assignedTo: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        }),
+        prisma.task.count({ where }),
       ]);
 
       const totalPages = Math.ceil(totalTasks / limit);
 
       return {
-        tasks: tasks as unknown as ITask[],
+        tasks,
         pagination: {
           currentPage: page,
           totalPages,
           totalTasks,
           hasNext: page < totalPages,
-          hasPrev: page > 1
-        }
+          hasPrev: page > 1,
+        },
       };
     } catch (error) {
+      console.error('Get tasks error:', error);
       throw new AppError('Failed to retrieve tasks', 500);
     }
   }
 
-  static async getTaskById(taskId: string): Promise<ITask> {
+  static async getTaskById(taskId: string) {
     try {
-      if (!mongoose.Types.ObjectId.isValid(taskId)) {
-        throw new AppError('Invalid task ID format', 400);
-      }
-
-      const task = await Task.findById(taskId)
-        .populate('creatorId assignedToId', 'name email');
+      const task = await prisma.task.findUnique({
+        where: { id: taskId },
+        include: {
+          creator: {
+            select: { id: true, name: true, email: true },
+          },
+          assignedTo: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      });
 
       if (!task) {
         throw new AppError('Task not found', 404);
@@ -152,6 +189,7 @@ export class TaskService {
       if (error instanceof AppError) {
         throw error;
       }
+      console.error('Get task by ID error:', error);
       throw new AppError('Failed to retrieve task', 500);
     }
   }
@@ -167,21 +205,20 @@ export class TaskService {
       assignedToId: string;
     }>,
     userId: string
-  ): Promise<ITask> {
+  ) {
     try {
-      if (!mongoose.Types.ObjectId.isValid(taskId)) {
-        throw new AppError('Invalid task ID format', 400);
-      }
-
       // Find the task first
-      const existingTask = await Task.findById(taskId);
+      const existingTask = await prisma.task.findUnique({
+        where: { id: taskId },
+      });
+
       if (!existingTask) {
         throw new AppError('Task not found', 404);
       }
 
       // Check if user has permission to update (creator or assignee)
-      const canUpdate = existingTask.creatorId.toString() === userId || 
-                       existingTask.assignedToId.toString() === userId;
+      const canUpdate = existingTask.creatorId === userId || 
+                       existingTask.assignedToId === userId;
 
       if (!canUpdate) {
         throw new AppError('You do not have permission to update this task', 403);
@@ -189,194 +226,153 @@ export class TaskService {
 
       // If assignedToId is being updated, validate the new user exists
       if (updates.assignedToId) {
-        const { User } = require('../models/User');
-        const assignedUser = await User.findById(updates.assignedToId);
+        const assignedUser = await prisma.user.findUnique({
+          where: { id: updates.assignedToId }
+        });
+        
         if (!assignedUser) {
           throw new AppError('Assigned user not found', 404);
         }
       }
 
       // Prepare update data
-      const updateData: any = { ...updates };
+      const updateData: Prisma.TaskUpdateInput = { ...updates };
+      
       if (updates.dueDate) {
         updateData.dueDate = new Date(updates.dueDate);
       }
 
-      const task = await Task.findByIdAndUpdate(
-        taskId,
-        updateData,
-        { new: true, runValidators: true }
-      ).populate('creatorId assignedToId', 'name email');
+      const task = await prisma.task.update({
+        where: { id: taskId },
+        data: updateData,
+        include: {
+          creator: {
+            select: { id: true, name: true, email: true },
+          },
+          assignedTo: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      });
 
-      return task!;
+      return task;
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
       }
+      console.error('Update task error:', error);
       throw new AppError('Failed to update task', 500);
     }
   }
 
   static async deleteTask(taskId: string, userId: string): Promise<void> {
     try {
-      if (!mongoose.Types.ObjectId.isValid(taskId)) {
-        throw new AppError('Invalid task ID format', 400);
-      }
+      const task = await prisma.task.findUnique({
+        where: { id: taskId },
+      });
 
-      const task = await Task.findById(taskId);
       if (!task) {
         throw new AppError('Task not found', 404);
       }
 
       // Only the creator can delete the task
-      if (task.creatorId.toString() !== userId) {
+      if (task.creatorId !== userId) {
         throw new AppError('Only the task creator can delete this task', 403);
       }
 
-      await Task.findByIdAndDelete(taskId);
+      await prisma.task.delete({
+        where: { id: taskId },
+      });
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
       }
+      console.error('Delete task error:', error);
       throw new AppError('Failed to delete task', 500);
     }
   }
 
-  static async getTaskStatistics(userId?: string): Promise<any> {
+  static async getTaskStatistics(userId?: string) {
     try {
-      const matchCondition = userId 
+      const where: Prisma.TaskWhereInput = userId 
         ? { 
-            $or: [
-              { creatorId: new mongoose.Types.ObjectId(userId) },
-              { assignedToId: new mongoose.Types.ObjectId(userId) }
+            OR: [
+              { creatorId: userId },
+              { assignedToId: userId }
             ]
           }
         : {};
 
-      const stats = await Task.aggregate([
-        { $match: matchCondition },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: 1 },
-            todo: {
-              $sum: { $cond: [{ $eq: ['$status', TaskStatus.TODO] }, 1, 0] }
-            },
-            inProgress: {
-              $sum: { $cond: [{ $eq: ['$status', TaskStatus.IN_PROGRESS] }, 1, 0] }
-            },
-            review: {
-              $sum: { $cond: [{ $eq: ['$status', TaskStatus.REVIEW] }, 1, 0] }
-            },
-            completed: {
-              $sum: { $cond: [{ $eq: ['$status', TaskStatus.COMPLETED] }, 1, 0] }
-            },
-            overdue: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $lt: ['$dueDate', new Date()] },
-                      { $ne: ['$status', TaskStatus.COMPLETED] }
-                    ]
-                  },
-                  1,
-                  0
-                ]
-              }
-            },
-            byPriority: {
-              $push: '$priority'
-            }
-          }
-        },
-        {
-          $project: {
-            _id: 0,
-            total: 1,
-            byStatus: {
-              todo: '$todo',
-              inProgress: '$inProgress',
-              review: '$review',
-              completed: '$completed'
-            },
-            overdue: 1,
-            completionRate: {
-              $cond: [
-                { $gt: ['$total', 0] },
-                { $multiply: [{ $divide: ['$completed', '$total'] }, 100] },
-                0
-              ]
-            },
-            priorityCounts: {
-              low: {
-                $size: {
-                  $filter: {
-                    input: '$byPriority',
-                    cond: { $eq: ['$$this', TaskPriority.LOW] }
-                  }
-                }
-              },
-              medium: {
-                $size: {
-                  $filter: {
-                    input: '$byPriority',
-                    cond: { $eq: ['$$this', TaskPriority.MEDIUM] }
-                  }
-                }
-              },
-              high: {
-                $size: {
-                  $filter: {
-                    input: '$byPriority',
-                    cond: { $eq: ['$$this', TaskPriority.HIGH] }
-                  }
-                }
-              },
-              urgent: {
-                $size: {
-                  $filter: {
-                    input: '$byPriority',
-                    cond: { $eq: ['$$this', TaskPriority.URGENT] }
-                  }
-                }
-              }
-            }
-          }
-        }
+      const [
+        total,
+        todoCount,
+        inProgressCount,
+        reviewCount,
+        completedCount,
+        overdueCount,
+        lowCount,
+        mediumCount,
+        highCount,
+        urgentCount,
+      ] = await Promise.all([
+        prisma.task.count({ where }),
+        prisma.task.count({ where: { ...where, status: Status.TODO } }),
+        prisma.task.count({ where: { ...where, status: Status.IN_PROGRESS } }),
+        prisma.task.count({ where: { ...where, status: Status.REVIEW } }),
+        prisma.task.count({ where: { ...where, status: Status.COMPLETED } }),
+        prisma.task.count({
+          where: {
+            ...where,
+            dueDate: { lt: new Date() },
+            status: { not: Status.COMPLETED },
+          },
+        }),
+        prisma.task.count({ where: { ...where, priority: Priority.LOW } }),
+        prisma.task.count({ where: { ...where, priority: Priority.MEDIUM } }),
+        prisma.task.count({ where: { ...where, priority: Priority.HIGH } }),
+        prisma.task.count({ where: { ...where, priority: Priority.URGENT } }),
       ]);
 
-      return stats[0] || {
-        total: 0,
-        byStatus: { todo: 0, inProgress: 0, review: 0, completed: 0 },
-        overdue: 0,
-        completionRate: 0,
-        priorityCounts: { low: 0, medium: 0, high: 0, urgent: 0 }
+      const completionRate = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+
+      return {
+        total,
+        byStatus: {
+          todo: todoCount,
+          inProgress: inProgressCount,
+          review: reviewCount,
+          completed: completedCount,
+        },
+        overdue: overdueCount,
+        completionRate,
+        priorityCounts: {
+          low: lowCount,
+          medium: mediumCount,
+          high: highCount,
+          urgent: urgentCount,
+        },
       };
     } catch (error) {
+      console.error('Get task statistics error:', error);
       throw new AppError('Failed to retrieve task statistics', 500);
     }
   }
 
-  static async getUserTasks(userId: string, type: 'assigned' | 'created' | 'all' = 'all'): Promise<ITask[]> {
+  static async getUserTasks(userId: string, type: 'assigned' | 'created' | 'all' = 'all') {
     try {
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        throw new AppError('Invalid user ID format', 400);
-      }
-
-      let query: any = {};
+      let where: Prisma.TaskWhereInput = {};
 
       switch (type) {
         case 'assigned':
-          query.assignedToId = userId;
+          where.assignedToId = userId;
           break;
         case 'created':
-          query.creatorId = userId;
+          where.creatorId = userId;
           break;
         case 'all':
         default:
-          query = {
-            $or: [
+          where = {
+            OR: [
               { creatorId: userId },
               { assignedToId: userId }
             ]
@@ -384,13 +380,25 @@ export class TaskService {
           break;
       }
 
-      const tasks = await Task.find(query)
-        .populate('creatorId assignedToId', 'name email')
-        .sort({ dueDate: 1, priority: -1 })
-        .lean();
+      const tasks = await prisma.task.findMany({
+        where,
+        include: {
+          creator: {
+            select: { id: true, name: true, email: true },
+          },
+          assignedTo: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+        orderBy: [
+          { dueDate: 'asc' },
+          { priority: 'desc' },
+        ],
+      });
 
-      return tasks as unknown as ITask[];
+      return tasks;
     } catch (error) {
+      console.error('Get user tasks error:', error);
       throw new AppError('Failed to retrieve user tasks', 500);
     }
   }

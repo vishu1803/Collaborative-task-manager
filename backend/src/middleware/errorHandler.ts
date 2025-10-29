@@ -19,7 +19,7 @@ export class AppError extends Error {
 }
 
 /**
- * Global error handler middleware
+ * Global error handler middleware - Updated for Prisma
  */
 export const errorHandler = (
   error: Error | AppError,
@@ -36,13 +36,37 @@ export const errorHandler = (
   } else if (error.name === 'ValidationError') {
     statusCode = 400;
     message = 'Validation Error';
-  } else if (error.name === 'MongoServerError' && (error as any).code === 11000) {
+  } 
+  // ✅ Updated: Prisma-specific error handling
+  else if (error.name === 'PrismaClientValidationError') {
     statusCode = 400;
-    message = 'Duplicate field value';
-  } else if (error.name === 'CastError') {
+    message = 'Invalid data provided';
+  } else if (error.name === 'PrismaClientKnownRequestError') {
     statusCode = 400;
-    message = 'Invalid ID format';
-  } else if (error.name === 'JsonWebTokenError') {
+    const prismaError = error as any;
+    if (prismaError.code === 'P2002') {
+      message = 'Duplicate field value';
+    } else if (prismaError.code === 'P2025') {
+      message = 'Record not found';
+    } else if (prismaError.code === 'P2003') {
+      message = 'Foreign key constraint violation';
+    } else {
+      message = 'Database error';
+    }
+  } else if (error.name === 'PrismaClientUnknownRequestError') {
+    statusCode = 500;
+    message = 'Database connection error';
+  }
+  // ❌ Removed: MongoDB-specific error handling
+  // } else if (error.name === 'MongoServerError' && (error as any).code === 11000) {
+  //   statusCode = 400;
+  //   message = 'Duplicate field value';
+  // } else if (error.name === 'CastError') {  // ← THIS WAS THE PROBLEM!
+  //   statusCode = 400;
+  //   message = 'Invalid ID format';
+  // }
+  // ✅ Keep: JWT error handling (still relevant)
+  else if (error.name === 'JsonWebTokenError') {
     statusCode = 401;
     message = 'Invalid token';
   } else if (error.name === 'TokenExpiredError') {

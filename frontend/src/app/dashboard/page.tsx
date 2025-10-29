@@ -66,7 +66,7 @@ export default function DashboardPage() {
     if (!taskToEdit) return;
 
     try {
-      await updateTask(taskToEdit._id, taskData);
+      await updateTask(taskToEdit.id, taskData);
       setIsEditModalOpen(false);
       setTaskToEdit(null);
     } catch (error) {
@@ -80,7 +80,7 @@ export default function DashboardPage() {
     }
 
     try {
-      await deleteTask(task._id);
+      await deleteTask(task.id);
     } catch (error) {
       console.error('Failed to delete task:', error);
     }
@@ -88,7 +88,7 @@ export default function DashboardPage() {
 
   const handleStatusChange = async (task: Task, status: TaskStatus) => {
     try {
-      await updateTask(task._id, { status });
+      await updateTask(task.id, { status });
     } catch (error) {
       console.error('Failed to update task status:', error);
     }
@@ -134,7 +134,7 @@ export default function DashboardPage() {
                     </div>
                   ) : (
                     tasks.slice(0, 3).map((task) => (
-                      <div key={task._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-medium text-gray-900 truncate">
                             {task.title}

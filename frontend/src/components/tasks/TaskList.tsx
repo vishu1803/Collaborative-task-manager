@@ -80,7 +80,7 @@ export function TaskList({
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {tasks.map((task) => (
           <TaskCard
-            key={task._id}
+            key={task.id}
             task={task}
             onEdit={onEdit}
             onDelete={onDelete}

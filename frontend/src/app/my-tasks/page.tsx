@@ -37,7 +37,7 @@ export default function MyTasksPage() {
     if (!taskToEdit) return;
 
     try {
-      await updateTask({ id: taskToEdit._id, data: taskData });
+      await updateTask({ id: taskToEdit.id, data: taskData });
       setIsEditModalOpen(false);
       setTaskToEdit(null);
       // Refresh the tasks list
@@ -53,7 +53,7 @@ export default function MyTasksPage() {
     }
 
     try {
-      await deleteTask(task._id);
+      await deleteTask(task.id);
       // Refresh the tasks list
       refresh();
     } catch (error) {
@@ -63,7 +63,7 @@ export default function MyTasksPage() {
 
   const handleStatusChange = async (task: Task, status: TaskStatus) => {
     try {
-      await updateTask({ id: task._id, data: { status } });
+      await updateTask({ id: task.id, data: { status } });
       // Refresh the tasks list
       refresh();
     } catch (error) {

@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-import path from 'path';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 
 // Load the correct .env file depending on environment
 const envFile = process.env.NODE_ENV === 'production' 

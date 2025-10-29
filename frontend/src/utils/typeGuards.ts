@@ -5,7 +5,7 @@ export function isTask(obj: unknown): obj is Task {
   return (
     typeof obj === 'object' &&
     obj !== null &&
-    '_id' in obj &&
+    'id' in obj &&
     'title' in obj &&
     'description' in obj &&
     'dueDate' in obj &&
@@ -22,7 +22,7 @@ export function isUser(obj: unknown): obj is User {
   return (
     typeof obj === 'object' &&
     obj !== null &&
-    '_id' in obj &&
+    'id' in obj &&
     'name' in obj &&
     'email' in obj &&
     'createdAt' in obj &&

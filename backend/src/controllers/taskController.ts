@@ -1,13 +1,21 @@
 import { Request, Response } from 'express';
 import { TaskService } from '../services/taskService';
-import { ApiResponse, TaskStatus, TaskPriority } from '../types';
+import { ApiResponse, Status, Priority } from '../types';
 import { asyncHandler } from '../middleware/errorHandler';
 import { socketManager } from '../sockets/socketManager';
 
 export class TaskController {
-  static createTask = asyncHandler(async (req: Request, res: Response) => {
+  static createTask = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { title, description, dueDate, priority, assignedToId } = req.body;
-    const creatorId = (req.user as any)._id.toString();
+    const creatorId = (req.user as any)?.id || (req.user as any)?.userId;
+
+    if (!creatorId) {
+      res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+      return;
+    }
 
     const task = await TaskService.createTask({
       title,
@@ -18,7 +26,7 @@ export class TaskController {
       creatorId
     });
 
-    socketManager.notifyTaskCreated(task, (req.user as any).name);
+    socketManager.notifyTaskCreated(task, (req.user as any)?.name || 'Unknown User');
 
     const response: ApiResponse = {
       success: true,
@@ -27,18 +35,26 @@ export class TaskController {
     };
 
     res.status(201).json(response);
+    return;
   });
 
-  static updateTask = asyncHandler(async (req: Request, res: Response) => {
+  static updateTask = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     if (!id) throw new Error('Task ID is required');
 
     const updates = req.body;
-    const userId = (req.user as any)._id.toString();
+    const userId = (req.user as any)?.id || (req.user as any)?.userId;
 
-    const oldTask = await TaskService.getTaskById(id!);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+      return;
+    }
 
-    const task = await TaskService.updateTask(id!, updates, userId);
+    const oldTask = await TaskService.getTaskById(id);
+    const task = await TaskService.updateTask(id, updates, userId);
 
     const changes: string[] = [];
     if (updates.title) changes.push('title');
@@ -49,7 +65,7 @@ export class TaskController {
       changes.push('status');
       socketManager.notifyTaskStatusChanged(
         task,
-        (req.user as any).name,
+        (req.user as any)?.name || 'Unknown User',
         oldTask.status,
         updates.status
       );
@@ -59,22 +75,22 @@ export class TaskController {
       changes.push('priority');
       socketManager.notifyTaskPriorityChanged(
         task,
-        (req.user as any).name,
+        (req.user as any)?.name || 'Unknown User',
         oldTask.priority,
         updates.priority
       );
     }
 
-    if (updates.assignedToId && (oldTask.assignedToId as any).toString() !== updates.assignedToId) {
+    if (updates.assignedToId && oldTask.assignedToId !== updates.assignedToId) {
       changes.push('assignee');
       socketManager.notifyTaskReassigned(
         task,
-        (req.user as any).name,
-        (oldTask.assignedToId as any).toString(),
+        (req.user as any)?.name || 'Unknown User',
+        oldTask.assignedToId,
         updates.assignedToId
       );
     } else if (changes.length > 0) {
-      socketManager.notifyTaskUpdated(task, (req.user as any).name, changes);
+      socketManager.notifyTaskUpdated(task, (req.user as any)?.name || 'Unknown User', changes);
     }
 
     const response: ApiResponse = {
@@ -84,23 +100,32 @@ export class TaskController {
     };
 
     res.status(200).json(response);
+    return;
   });
 
-  static deleteTask = asyncHandler(async (req: Request, res: Response) => {
+  static deleteTask = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     if (!id) throw new Error('Task ID is required');
 
-    const userId = (req.user as any)._id.toString();
-    const task = await TaskService.getTaskById(id!);
+    const userId = (req.user as any)?.id || (req.user as any)?.userId;
 
-    await TaskService.deleteTask(id!, userId);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+      return;
+    }
+
+    const task = await TaskService.getTaskById(id);
+    await TaskService.deleteTask(id, userId);
 
     socketManager.notifyTaskDeleted(
-      (task._id as any).toString(),
+      task.id,
       task.title,
-      (task.creatorId as any)._id?.toString() || (task.creatorId as any).toString(),
-      (task.assignedToId as any)._id?.toString() || (task.assignedToId as any).toString(),
-      (req.user as any).name
+      task.creatorId,
+      task.assignedToId,
+      (req.user as any)?.name || 'Unknown User'
     );
 
     const response: ApiResponse = {
@@ -109,9 +134,10 @@ export class TaskController {
     };
 
     res.status(200).json(response);
+    return;
   });
 
-  static getTasks = asyncHandler(async (req: Request, res: Response) => {
+  static getTasks = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const {
       page = '1',
       limit = '10',
@@ -126,12 +152,12 @@ export class TaskController {
 
     const filters: any = {};
 
-    if (status && Object.values(TaskStatus).includes(status as TaskStatus)) {
-      filters.status = status as TaskStatus;
+    if (status && ['TODO', 'IN_PROGRESS', 'REVIEW', 'COMPLETED'].includes(status as string)) {
+      filters.status = status as Status;
     }
 
-    if (priority && Object.values(TaskPriority).includes(priority as TaskPriority)) {
-      filters.priority = priority as TaskPriority;
+    if (priority && ['LOW', 'MEDIUM', 'HIGH', 'URGENT'].includes(priority as string)) {
+      filters.priority = priority as Priority;
     }
 
     if (assignedToId && typeof assignedToId === 'string') {
@@ -163,11 +189,11 @@ export class TaskController {
     res.status(200).json(response);
   });
 
-  static getTaskById = asyncHandler(async (req: Request, res: Response) => {
+  static getTaskById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     if (!id) throw new Error('Task ID is required');
 
-    const task = await TaskService.getTaskById(id!);
+    const task = await TaskService.getTaskById(id);
 
     const response: ApiResponse = {
       success: true,
@@ -178,10 +204,11 @@ export class TaskController {
     res.status(200).json(response);
   });
 
-  static getTaskStatistics = asyncHandler(async (req: Request, res: Response) => {
+  static getTaskStatistics = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { userId } = req.query;
+    const currentUserId = (req.user as any)?.id || (req.user as any)?.userId;
     
-    const targetUserId = (userId as string) || (req.user as any)._id.toString();
+    const targetUserId = (userId as string) || currentUserId;
     
     const stats = await TaskService.getTaskStatistics(targetUserId);
 
@@ -194,9 +221,9 @@ export class TaskController {
     res.status(200).json(response);
   });
 
-  static getUserTasks = asyncHandler(async (req: Request, res: Response) => {
+  static getUserTasks = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { userId, type = 'all' } = req.query;
-    const currentUserId = (req.user as any)._id.toString();
+    const currentUserId = (req.user as any)?.id || (req.user as any)?.userId;
     
     const targetUserId = (userId as string) || currentUserId;
     
@@ -219,9 +246,17 @@ export class TaskController {
     res.status(200).json(response);
   });
 
-  static getMyTasks = asyncHandler(async (req: Request, res: Response) => {
+  static getMyTasks = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { type = 'all' } = req.query;
-    const currentUserId = (req.user as any)._id.toString();
+    const currentUserId = (req.user as any)?.id || (req.user as any)?.userId;
+    
+    if (!currentUserId) {
+      res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+      return;
+    }
     
     const tasks = await TaskService.getUserTasks(
       currentUserId, 
@@ -239,10 +274,19 @@ export class TaskController {
     };
 
     res.status(200).json(response);
+    return;
   });
 
-  static getOverdueTasks = asyncHandler(async (req: Request, res: Response) => {
-    const currentUserId = (req.user as any)._id.toString();
+  static getOverdueTasks = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const currentUserId = (req.user as any)?.id || (req.user as any)?.userId;
+    
+    if (!currentUserId) {
+      res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+      return;
+    }
     
     const result = await TaskService.getTasks({
       filters: { overdue: true },
@@ -252,8 +296,7 @@ export class TaskController {
     });
 
     const userOverdueTasks = result.tasks.filter((task: any) => 
-      (task.creatorId as any)._id.toString() === currentUserId || 
-      (task.assignedToId as any)._id.toString() === currentUserId
+      task.creatorId === currentUserId || task.assignedToId === currentUserId
     );
 
     const response: ApiResponse = {
@@ -266,5 +309,6 @@ export class TaskController {
     };
 
     res.status(200).json(response);
+    return;
   });
 }

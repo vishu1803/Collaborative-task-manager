@@ -19,7 +19,8 @@ interface TaskFormProps {
 }
 
 export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskFormProps) {
-  const [users, setUsers] = useState<Array<{ _id: string; name: string; email: string }>>([]);
+  // ✅ Fix 1: Initialize with empty array to prevent undefined
+  const [users, setUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const isEditing = !!task;
 
@@ -37,7 +38,10 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
       description: task.description,
       dueDate: new Date(task.dueDate).toISOString().slice(0, 16),
       priority: task.priority,
-      assignedToId: task.assignedToId._id,
+      // ✅ Fix 2: Safe access to assignedToId
+      assignedToId: typeof task.assignedToId === 'string' 
+        ? task.assignedToId 
+        : task.assignedToId?.id || '',
       ...(isEditing && { status: task.status }),
     } : {
       priority: TaskPriority.MEDIUM,
@@ -51,10 +55,14 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
       try {
         const response = await userAPI.getUsers(true);
         if (response.success && response.data) {
-          setUsers(response.data.users);
+          // ✅ Fix 3: Handle different response structures
+          const userData = response.data.users || response.data;
+          setUsers(Array.isArray(userData) ? userData : []);
         }
       } catch (error) {
         console.error('Failed to fetch users:', error);
+        // ✅ Fix 4: Set empty array on error
+        setUsers([]);
       } finally {
         setLoadingUsers(false);
       }
@@ -64,13 +72,22 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
   }, []);
 
   const handleFormSubmit = async (data: CreateTaskFormData | UpdateTaskFormData) => {
-    try {
-      await onSubmit(data);
-      if (!isEditing) reset();
-    } catch (error) {
-      // Error handling is done in parent
-    }
-  };
+  try {
+    // ✅ Debug logging - let's see what's actually being sent
+    console.log('🔍 DEBUG - Form data being submitted:', {
+      assignedToId: data.assignedToId,
+      assignedToIdType: typeof data.assignedToId,
+      assignedToIdLength: data.assignedToId?.length,
+      rawData: data
+    });
+    
+    await onSubmit(data);
+    if (!isEditing) reset();
+  } catch (error) {
+    console.error('❌ TaskForm submission error:', error);
+  }
+};
+
 
   const priorityOptions = [
     { value: TaskPriority.LOW, label: 'Low' },
@@ -86,8 +103,9 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
     { value: TaskStatus.COMPLETED, label: 'Completed' },
   ];
 
-  const userOptions = users.map(user => ({
-    value: user._id,
+  // ✅ Fix 5: Safe mapping with fallback
+  const userOptions = (users || []).map(user => ({
+    value: user.id,
     label: `${user.name} (${user.email})`,
   }));
 
