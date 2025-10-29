@@ -1,22 +1,73 @@
 import dotenv from 'dotenv';
+import path from 'path';
 
-dotenv.config();
+// Load the correct .env file depending on environment
+const envFile = process.env.NODE_ENV === 'production' 
+  ? '.env.production' 
+  : '.env';
 
+dotenv.config({
+  path: path.resolve(process.cwd(), envFile)
+});
+
+// Helper to ensure required environment variables exist
+function requireEnv(key: string): string {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`❌ Missing required environment variable: ${key}`);
+  }
+  return value;
+}
+
+// Export validated configuration
 export const config = {
-  port: process.env.PORT || 5000,
-  nodeEnv: process.env.NODE_ENV || 'development',
-  mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/collaborative-task-manager',
-  jwtSecret: process.env.JWT_SECRET || 'fallback-secret-key',
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
-  socketCorsOrigin: process.env.SOCKET_CORS_ORIGIN || 'http://localhost:3000',
+  /* 🌍 Environment */
+  nodeEnv:        process.env.NODE_ENV || 'development',
+  isProduction:   process.env.NODE_ENV === 'production',
+  isDevelopment:  process.env.NODE_ENV === 'development',
+  isTest:         process.env.NODE_ENV === 'test',
+
+  /* 🖥️ Server */
+  port:           parseInt(process.env.PORT || '5000', 10),
+  host:           process.env.HOST || (process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost'),
+
+  /* 🗄️ Database */
+  mongoUri:     requireEnv('MONGODB_URI'),
+
+  /* 🔐 JWT */
+  jwtSecret:      requireEnv('JWT_SECRET'),
+  jwtExpiresIn:   process.env.JWT_EXPIRES_IN || '24h',
+
+  /* 🌐 CORS */
+  frontendUrl:    requireEnv('FRONTEND_URL'),
+  socketCorsOrigin: process.env.SOCKET_CORS_ORIGIN || process.env.FRONTEND_URL,
+
+  /* 🛡️ Security */
+  bcryptSaltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10),
+  rateLimitWindow:  parseInt(process.env.RATE_LIMIT_WINDOW || '15', 10),
+  rateLimitMax:     parseInt(process.env.RATE_LIMIT_MAX || '100', 10),
+
+  /* ✅ Validation function */
+  validate() {
+    if (this.isProduction) {
+      // Enforce stronger requirements in production
+      if (this.jwtSecret.length < 32) {
+        throw new Error('JWT_SECRET must be at least 32 characters long in production');
+      }
+
+      if (!this.mongoUri.includes('mongodb+srv://')) {
+        console.warn('⚠️  Consider using MongoDB Atlas in production for better reliability');
+      }
+    }
+
+    console.log('═══════════════════════════════════════');
+    console.log(`🌍 Environment:         ${this.nodeEnv}`);
+    console.log(`🚀 Server Host:         ${this.host}`);
+    console.log(`🔌 Server Port:         ${this.port}`);
+    console.log(`🔒 CORS Allowed Origin: ${this.frontendUrl}`);
+    console.log('═══════════════════════════════════════');
+  }
 };
 
-// Validate required environment variables
-if (!process.env.JWT_SECRET && config.nodeEnv === 'production') {
-  throw new Error('JWT_SECRET is required in production');
-}
-
-if (!process.env.MONGODB_URI && config.nodeEnv === 'production') {
-  throw new Error('MONGODB_URI is required in production');
-}
+// Validate configuration immediately when imported
+config.validate();

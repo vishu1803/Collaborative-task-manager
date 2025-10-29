@@ -1,0 +1,61 @@
+config:
+  target: 'http://localhost:5000'
+  phases:
+    - duration: 60
+      arrivalRate: 10
+    - duration: 120
+      arrivalRate: 20
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+
+scenarios:
+  - name: "Health Check"
+    weight: 20
+    flow:
+      - get:
+          url: "/health"
+
+  - name: "User Registration and Login"
+    weight: 30
+    flow:
+      - post:
+          url: "/api/auth/register"
+          json:
+            name: "Load Test User {{ $randomString() }}"
+            email: "loadtest{{ $randomString() }}@example.com"
+            password: "password123"
+          capture:
+            - json: "$.data.token"
+              as: "authToken"
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "loadtest{{ $randomString() }}@example.com"
+            password: "password123"
+
+  - name: "Task Operations"
+    weight: 50
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "loadtest@example.com"
+            password: "password123"
+          capture:
+            - json: "$.data.token"
+              as: "authToken"
+      - get:
+          url: "/api/tasks"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+      - post:
+          url: "/api/tasks"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            title: "Load Test Task {{ $randomString() }}"
+            description: "Task created during load testing"
+            dueDate: "2025-12-31T23:59:59.000Z"
+            priority: "Medium"
+            assignedToId: "{{ $randomString() }}"

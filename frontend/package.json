@@ -6,10 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "next lint",
     "lint:fix": "next lint --fix",
     "format": "prettier --write .",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "analyze": "ANALYZE=true npm run build",
+    "export": "next export",
+    "docker:build": "docker build -t task-manager-frontend .",
+    "docker:run": "docker run -p 3000:3000 task-manager-frontend",
+    "test:e2e": "cypress run",
+    "test:e2e:open": "cypress open",
+    "test:integration": "cypress run --spec 'cypress/e2e/integration.cy.ts'",
+    "seed:test": "node ../scripts/seed-test-data.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
@@ -29,10 +37,12 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/cypress": "^10.1.0",
     "@types/node": "^20.19.23",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/socket.io-client": "^1.4.36",
+    "cypress": "^15.5.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.0",
     "eslint-config-prettier": "^10.1.8",

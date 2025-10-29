@@ -21,10 +21,16 @@ export function Layout({ children }: LayoutProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    router.push('/auth/login');
-  };
+  const handleLogout = async () => {
+  try {
+    await logout(); // ensure async logout finishes
+    localStorage.removeItem('auth_token'); // double ensure removal
+    router.push('/auth/login'); // redirect after token cleared
+  } catch (error) {
+    console.error('Logout failed:', error);
+  }
+};
+
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '📊' },
