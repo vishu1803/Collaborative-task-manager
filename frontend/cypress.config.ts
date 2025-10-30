@@ -15,7 +15,7 @@ export default defineConfig({
     env: {
       API_URL: 'http://localhost:5000/api',
     },
-    setupNodeEvents(on, config) {
+    setupNodeEvents(_on, _config) {
       // implement node event listeners here
     },
   },
