@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TaskNotification } from '@/types';
 import { clsx } from 'clsx';
 

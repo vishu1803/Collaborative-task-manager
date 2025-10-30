@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSocket } from '@/contexts/SocketContext';
 import { Toast } from './Toast';
 import { TaskNotification } from '@/types';
