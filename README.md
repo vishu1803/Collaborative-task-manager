@@ -2,115 +2,189 @@
 ```markdown
 # 🚀 Collaborative Task Manager
 
-A modern, real-time collaborative task management application built with Next.js, Node.js, MongoDB, and Socket.io. This full-stack application enables teams to efficiently manage tasks with real-time notifications, comprehensive filtering, and intuitive user interface.
+A full-stack web application for collaborative task management with real-time updates, built with modern technologies and deployed to production.
 
-## 📋 Table of Contents
+## 🌐 **Live Application**
 
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Architecture](#-architecture)
-- [Prerequisites](#-prerequisites)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Development](#-development)
-- [Testing](#-testing)
-- [Deployment](#-deployment)
-- [API Documentation](#-api-documentation)
-- [Project Structure](#-project-structure)
-- [Contributing](#-contributing)
-- [License](#-license)
+- **Frontend**: [https://collaborative-task-manager-fc26.vercel.app](https://collaborative-task-manager-fc26.vercel.app)
+- **Backend API**: [https://collaborative-task-manager-3jhp.onrender.com](https://collaborative-task-manager-3jhp.onrender.com)
 
-## ✨ Features
+## 🛠️ **Tech Stack**
 
-### 🔐 Authentication System
-- User registration and login
-- JWT-based authentication
-- Password hashing with bcrypt
-- Protected routes and middleware
-- Profile management
+### **Frontend**
+- **Next.js 16** with App Router
+- **TypeScript** for type safety
+- **Tailwind CSS** for responsive styling
+- **React Hook Form** for form management and validation
+- **Zod** for schema validation
+- **Socket.io Client** for real-time updates
 
-### 📋 Task Management
-- **CRUD Operations**: Create, Read, Update, Delete tasks
-- **Task Properties**: Title, description, due date, priority, status, assignee
-- **Task Status**: To Do, In Progress, Review, Completed
-- **Priority Levels**: Low, Medium, High, Urgent
-- **Task Assignment**: Assign tasks to team members
-- **Overdue Detection**: Automatic overdue task identification
+### **Backend**
+- **Node.js** with Express.js
+- **TypeScript** for backend type safety
+- **Prisma ORM** for database operations
+- **Socket.io** for real-time communication
+- **JWT** for authentication
+- **bcryptjs** for password hashing
+- **Zod** for DTO validation
 
-### 🔄 Real-time Features
-- **Live Updates**: Real-time task updates via Socket.io
-- **Instant Notifications**: Toast notifications for task changes
-- **User Presence**: Online/offline status tracking
-- **Connection Status**: Real-time connection indicator
-- **Notification Center**: Comprehensive notification management
+### **Database**
+- **PostgreSQL** (Production: Render PostgreSQL)
+- **Prisma** as ORM with migration support
 
-### 📊 Dashboard & Analytics
-- **Task Statistics**: Visual charts and metrics
-- **Completion Rates**: Progress tracking
-- **Priority Distribution**: Task priority analysis
-- **Overdue Tasks**: Dedicated overdue task monitoring
-- **Recent Activity**: Latest task updates
+### **Deployment**
+- **Frontend**: Vercel
+- **Backend**: Render
+- **Database**: Render PostgreSQL
 
-### 🔍 Advanced Filtering & Search
-- **Status Filtering**: Filter by task status
-- **Priority Filtering**: Filter by priority levels
-- **User Filtering**: Filter by creator/assignee
-- **Date Filtering**: Overdue task filtering
-- **Sorting Options**: Multiple sorting criteria
-- **Quick Filters**: One-click filter presets
+## 🗄️ **Database Architecture Decision**
 
-### 📱 Responsive Design
-- **Mobile-First**: Optimized for all screen sizes
-- **Modern UI**: Clean, intuitive interface
-- **Accessibility**: WCAG 2.1 compliant
-- **Progressive Enhancement**: Works without JavaScript
+### **PostgreSQL vs MongoDB: Why We Chose PostgreSQL**
 
-### 🔒 Security Features
-- **Input Validation**: Comprehensive data validation
-- **SQL Injection Protection**: Parameterized queries
-- **XSS Prevention**: Output sanitization
-- **CSRF Protection**: Token-based protection
-- **Rate Limiting**: API request limiting
-- **Secure Headers**: Security headers implementation
+We migrated from MongoDB to PostgreSQL during development for several critical reasons:
 
-## 🛠 Tech Stack
+#### **1. ACID Compliance & Data Integrity**
+- **PostgreSQL**: Full ACID transactions ensure data consistency across task assignments
+- **Critical Need**: When multiple users simultaneously assign/update tasks, PostgreSQL prevents race conditions and data corruption
+- **MongoDB Limitation**: Eventual consistency model could lead to conflicting task states
 
-### Frontend
-- **Framework**: Next.js 14 (React 18)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **State Management**: React Context + SWR
-- **Form Handling**: React Hook Form + Zod
-- **Real-time**: Socket.io Client
-- **HTTP Client**: Fetch API
-- **Build Tool**: Webpack (Next.js default)
+#### **2. Complex Relational Queries**
+- **Task Management Requirements**: Our app needs complex joins between users, tasks, and assignments
+- **PostgreSQL Advantage**: Native support for foreign keys, cascading deletes, and optimized JOIN operations
+- **Performance**: Significantly faster for dashboard analytics and user-specific task filtering
 
-### Backend
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Language**: TypeScript
-- **Database**: MongoDB with Mongoose ODM
-- **Authentication**: JWT (jsonwebtoken)
-- **Real-time**: Socket.io
-- **Validation**: Joi/Zod
-- **Security**: Helmet, CORS, bcryptjs
-- **Testing**: Jest + Supertest
+#### **3. TypeScript Integration Excellence**
+- **Prisma + PostgreSQL**: Auto-generated TypeScript types with compile-time safety
+- **Developer Experience**: IntelliSense support, zero runtime type errors
+- **Schema Evolution**: Type-safe database migrations and schema changes
 
-### Infrastructure
-- **Containerization**: Docker + Docker Compose
-- **Process Management**: PM2
-- **Reverse Proxy**: Nginx
-- **Database**: MongoDB Atlas (Production)
-- **Deployment**: Docker containers
-- **CI/CD**: GitHub Actions ready
+#### **4. Real-Time Constraints**
+- **Consistent Reads**: PostgreSQL ensures all users see the same task state immediately after updates
+- **Socket.io Integration**: Reliable triggers for real-time notifications without data inconsistencies
 
-### Development Tools
-- **Testing**: Jest, Cypress, Artillery
-- **Linting**: ESLint, Prettier
-- **Type Checking**: TypeScript
-- **Documentation**: JSDoc
-- **Version Control**: Git
+#### **5. Production Scalability**
+- **Connection Pooling**: Superior connection management for concurrent users
+- **Query Optimization**: Advanced indexing and query planning for large task datasets
+- **Cloud Support**: Better support on modern platforms (Render, Vercel, Railway)
 
+## 📊 **Database Schema**
+
+```
+
+-- Users table
+model User {
+id        String   @id @default(cuid())
+email     String   @unique
+name      String
+password  String
+createdAt DateTime @default(now()) @map("created_at")
+updatedAt DateTime @updatedAt @map("updated_at")
+
+createdTasks  Task[] @relation("TaskCreator")
+assignedTasks Task[] @relation("TaskAssignee")
+@@map("users")
+}
+
+-- Tasks table
+model Task {
+id          String    @id @default(cuid())
+title       String    @db.VarChar(100)
+description String?
+status      Status    @default(TODO)
+priority    Priority  @default(MEDIUM)
+dueDate     DateTime? @map("due_date")
+createdAt   DateTime  @default(now()) @map("created_at")
+updatedAt   DateTime  @updatedAt @map("updated_at")
+
+creatorId    String @map("creator_id")
+assignedToId String? @map("assigned_to_id")
+
+creator    User  @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+assignedTo User? @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+@@map("tasks")
+}
+
+-- Enums
+enum Status {
+TODO
+IN_PROGRESS
+REVIEW
+COMPLETED
+}
+
+enum Priority {
+LOW
+MEDIUM
+HIGH
+URGENT
+}
+
+```
+
+## 🏗️ **Architecture Overview**
+
+### **Backend Architecture Pattern**
+
+We implemented a **Service-Repository pattern** with clear separation of concerns:
+
+```
+
+Controllers/ ← HTTP request handling \& validation
+├── Services/ ← Business logic \& data transformation
+├── Repositories/ ← Data access layer (Prisma)
+├── DTOs/ ← Data Transfer Objects (Zod validation)
+├── Middleware/ ← Authentication, CORS, logging
+└── Utils/ ← Helper functions \& utilities
+
+```
+
+#### **DTO Validation Strategy**
+- **Zod Schemas**: Type-safe input validation for all endpoints
+- **CreateTaskDto**: Validates task creation with title length limits (100 chars)
+- **UpdateTaskDto**: Partial validation for task updates
+- **UserRegistrationDto**: Email validation and password strength requirements
+
+#### **JWT Implementation**
+- **HttpOnly Cookies**: Secure token storage (not localStorage)
+- **Refresh Token Rotation**: Enhanced security with token refresh
+- **Middleware Protection**: Route-level authentication guards
+
+### **Frontend Architecture**
+
+- **App Router**: Next.js 13+ file-based routing
+- **Component Structure**: Modular, reusable React components
+- **State Management**: Server state via React Query, client state via useState/useContext
+- **Real-time Integration**: Socket.io client with connection status management
+
+## 📊 **Data Management & State**
+
+### **Server State Management**
+- **React Query**: Caching, background updates, and optimistic updates
+- **Cache Invalidation**: Automatic refetch on task mutations
+- **Optimistic Updates**: Immediate UI updates before server confirmation
+- **Background Sync**: Tasks stay synchronized across browser tabs
+
+### **Form Management**
+- **React Hook Form**: Performance-optimized form handling
+- **Zod Integration**: Runtime schema validation with TypeScript inference
+- **Real-time Validation**: Instant feedback on form inputs
+- **Error Handling**: User-friendly error messages with field-level validation
+
+### **Loading States**
+- **Skeleton Components**: Smooth loading transitions
+- **Suspense Boundaries**: Granular loading states for different UI sections
+- **Error Boundaries**: Graceful error handling and recovery
+
+## 🔄 **Socket.io Real-Time Implementation**
+
+### **Real-Time Features**
+- **Live Task Updates**: Instant synchronization when tasks are created, updated, or deleted
+- **Assignment Notifications**: Real-time in-app notifications when tasks are assigned
+- **Status Changes**: All connected users see task status updates immediately
+- **Connection Management**: Automatic reconnection and connection status indicators
+
+### **Socket.io Architecture**
+```
 ## 🏗 Architecture
 
 ```
@@ -118,7 +192,7 @@ A modern, real-time collaborative task management application built with Next.js
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │                 │    │                 │    │                 │
 │   Frontend      │────│   Backend       │────│   Database      │
-│   (Next.js)     │    │   (Express.js)  │    │   (MongoDB)     │
+│   (Next.js)     │    │   (Express.js)  │    │   (PostgreSQL)  │
 │                 │    │                 │    │                 │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 │                       │
@@ -129,65 +203,104 @@ Socket.io
 
 ```
 
-### Key Design Patterns
-- **MVC Architecture**: Model-View-Controller pattern
-- **Repository Pattern**: Data access abstraction
-- **Service Layer**: Business logic separation
-- **Context API**: State management
-- **Hook Pattern**: Reusable logic components
+// Server-side event handling
+socket.on('join_user_room', (userId) => {
+socket.join(`user_${userId}`)
+})
 
-## 📋 Prerequisites
+socket.on('task_updated', (taskData) => {
+// Broadcast to all users except sender
+socket.broadcast.emit('task_change', taskData)
 
-Before running this application, ensure you have the following installed:
+// Send notification to assigned user
+if (taskData.assignedToId) {
+socket.to(`user_${taskData.assignedToId}`).emit('task_assigned', taskData)
+}
+})
 
-- **Node.js** (v18.0.0 or higher)
-- **npm** (v8.0.0 or higher) or **yarn** (v1.22.0 or higher)
-- **MongoDB** (v6.0 or higher) or MongoDB Atlas account
-- **Git** (v2.0 or higher)
-- **Docker** (v20.0 or higher) - for containerized deployment
-- **Docker Compose** (v2.0 or higher) - for multi-container setup
-
-### System Requirements
-- **RAM**: Minimum 4GB (8GB recommended)
-- **Storage**: At least 2GB free space
-- **OS**: Windows 10+, macOS 10.14+, or Linux (Ubuntu 18.04+)
-
-## 🚀 Installation
-
-### Option 1: Manual Setup
-
-#### 1. Clone the Repository
 ```
+
+### **Client-side Integration**
+- **Connection Status**: Visual indicators for Socket.io connection state
+- **Event Handling**: Listeners for task updates, assignments, and notifications
+- **Reconnection Logic**: Automatic reconnection with exponential backoff
+
+## 🚀 **Features**
+
+### **Core Functionality**
+- ✅ **User Authentication** (Registration, Login, JWT with HttpOnly cookies)
+- ✅ **Task CRUD Operations** (Create, Read, Update, Delete)
+- ✅ **Real-time Collaboration** (Socket.io live updates)
+- ✅ **Task Assignment** (Assign tasks to team members)
+- ✅ **Priority Management** (Low, Medium, High, Urgent)
+- ✅ **Status Tracking** (TODO, In Progress, Review, Completed)
+- ✅ **Due Date Management** with overdue detection
+- ✅ **User Dashboard** with personalized views
+- ✅ **Filtering & Sorting** (Status, Priority, Due Date)
+
+### **Advanced Features**
+- ✅ **Responsive Design** (Mobile-first approach with Tailwind CSS)
+- ✅ **Loading States** (Skeleton components and smooth transitions)
+- ✅ **Error Handling** (Comprehensive error boundaries and user feedback)
+- ✅ **Type Safety** (Full TypeScript implementation across stack)
+- ✅ **Input Validation** (Zod schemas with real-time validation)
+- ✅ **Security** (Password hashing, JWT tokens, CORS protection)
+
+## 🛠️ **Local Development Setup**
+
+### **Prerequisites**
+```
+
+- Node.js 18+
+- PostgreSQL database
+- Git
+- npm or yarn
+
+```
+
+### **Backend Setup**
+```
+
+
+# Clone repository
 
 git clone https://github.com/yourusername/collaborative-task-manager.git
-cd collaborative-task-manager
-
-```
-
-#### 2. Backend Setup
-```
-
-cd backend
+cd collaborative-task-manager/backend
 
 # Install dependencies
 
 npm install
 
-# Create environment file
+# Environment configuration
 
 cp .env.example .env
 
-# Edit environment variables
+# Configure your .env file:
 
-nano .env  \# or use your preferred editor
+NODE_ENV=development
+PORT=5000
+DATABASE_URL="postgresql://username:password@localhost:5432/taskmanager"
+JWT_SECRET="your-super-secret-jwt-key-minimum-32-characters"
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=http://localhost:3000
+SOCKET_CORS_ORIGIN=http://localhost:3000
 
-# Build TypeScript
+# Database setup
 
-npm run build
+npx prisma generate
+npx prisma db push
+
+# Optional: Seed database
+
+npm run seed
+
+# Start development server
+
+npm run dev
 
 ```
 
-#### 3. Frontend Setup
+### **Frontend Setup**
 ```
 
 cd ../frontend
@@ -196,241 +309,171 @@ cd ../frontend
 
 npm install
 
-# Create environment file
+# Environment configuration
 
 cp .env.example .env.local
 
-# Edit environment variables
-
-nano .env.local  \# or use your preferred editor
-
-```
-
-#### 4. Database Setup
-```
-
-
-# Start MongoDB (if running locally)
-
-mongod
-
-# Or use MongoDB Atlas connection string in .env
-
-```
-
-### Option 2: Docker Setup
-
-#### 1. Clone and Setup
-```
-
-git clone https://github.com/yourusername/collaborative-task-manager.git
-cd collaborative-task-manager
-
-```
-
-#### 2. Environment Configuration
-```
-
-
-# Copy environment files
-
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env.local
-
-# Edit environment variables as needed
-
-```
-
-#### 3. Docker Deployment
-```
-
-
-# Build and start all services
-
-docker-compose up -d
-
-# Check service status
-
-docker-compose ps
-
-# View logs
-
-docker-compose logs -f
-
-```
-
-## ⚙️ Configuration
-
-### Backend Environment Variables (`backend/.env`)
-
-```
-
-
-# Environment
-
-NODE_ENV=development
-
-# Server Configuration
-
-PORT=5000
-HOST=localhost
-
-# Database
-
-MONGODB_URI=mongodb://localhost:27017/task-manager
-
-# For MongoDB Atlas:
-
-```
-# MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/task-manager?retryWrites=true&w=majority
-```
-
-
-# JWT Configuration
-
-JWT_SECRET=your-super-secure-jwt-secret-key-at-least-32-characters-long
-JWT_EXPIRES_IN=24h
-
-# CORS Configuration
-
-FRONTEND_URL=http://localhost:3000
-SOCKET_CORS_ORIGIN=http://localhost:3000
-
-# Security
-
-BCRYPT_SALT_ROUNDS=10
-RATE_LIMIT_WINDOW=15
-RATE_LIMIT_MAX=100
-
-```
-
-### Frontend Environment Variables (`frontend/.env.local`)
-
-```
-
-
-# API Configuration
+# Configure your .env.local file:
 
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
 NEXT_PUBLIC_SOCKET_URL=http://localhost:5000
 
-# Feature Flags
+# Start development server
 
-NEXT_PUBLIC_ENABLE_PWA=false
-NEXT_PUBLIC_ENABLE_ANALYTICS=false
-
-```
-
-### Production Configuration
-
-For production deployment, update environment variables:
+npm run dev
 
 ```
 
+### **Access Application**
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:5000/api
+- **Database Studio**: `npx prisma studio` (http://localhost:5555)
 
-# Backend (.env.production)
+## 🌍 **Environment Variables**
+
+### **Backend (.env)**
+```
 
 NODE_ENV=production
-MONGODB_URI=mongodb+srv://production-cluster-connection
-JWT_SECRET=production-jwt-secret-key
-FRONTEND_URL=https://yourdomain.com
-BCRYPT_SALT_ROUNDS=12
-
-# Frontend (.env.production)
-
-NEXT_PUBLIC_API_URL=https://api.yourdomain.com/api
-NEXT_PUBLIC_SOCKET_URL=https://api.yourdomain.com
+PORT=10000
+DATABASE_URL=postgresql://your-database-url
+JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=https://your-frontend-domain.vercel.app
+SOCKET_CORS_ORIGIN=https://your-frontend-domain.vercel.app
+FRONTEND_URL=https://your-frontend-domain.vercel.app
 
 ```
 
-## 🔧 Development
-
-### Starting Development Servers
-
-#### Terminal 1 - Backend
+### **Frontend (.env.local)**
 ```
 
-cd backend
-npm run dev
-
-# Server runs on http://localhost:5000
+NEXT_PUBLIC_API_URL=https://your-backend-domain.onrender.com/api
+NEXT_PUBLIC_SOCKET_URL=https://your-backend-domain.onrender.com
 
 ```
 
-#### Terminal 2 - Frontend
+## 📚 **API Contract Documentation**
+
+### **Authentication Endpoints**
 ```
 
-cd frontend
-npm run dev
+POST /api/auth/register
 
-# Client runs on http://localhost:3000
+# Body: { name: string, email: string, password: string }
 
-```
+# Response: { user: User, token: string }
 
-#### Terminal 3 - Database (if local)
-```
+POST /api/auth/login
 
-mongod
+# Body: { email: string, password: string }
 
-# MongoDB runs on mongodb://localhost:27017
+# Response: { user: User, token: string }
 
-```
+GET /api/auth/profile
 
-### Development Scripts
+# Headers: Authorization: Bearer <token>
 
-#### Backend Scripts
-```
+# Response: { user: User }
 
-npm run dev          \# Start development server with nodemon
-npm run build        \# Build TypeScript to JavaScript
-npm run start        \# Start production server
-npm test             \# Run unit tests
-npm run test:watch   \# Run tests in watch mode
-npm run test:coverage \# Run tests with coverage
-npm run lint         \# Run ESLint
-npm run format       \# Format code with Prettier
+PUT /api/auth/profile
 
-```
+# Headers: Authorization: Bearer <token>
 
-#### Frontend Scripts
-```
+# Body: { name?: string, email?: string }
 
-npm run dev          \# Start Next.js development server
-npm run build        \# Build for production
-npm run start        \# Start production server
-npm run lint         \# Run ESLint
-npm run type-check   \# Run TypeScript checks
-npm run test:e2e     \# Run Cypress E2E tests
+# Response: { user: User }
 
 ```
 
-### Code Quality Tools
-
-#### ESLint Configuration
-Both frontend and backend use ESLint with TypeScript support:
+### **Task Management Endpoints**
 ```
 
-npm run lint         \# Check for issues
-npm run lint:fix     \# Fix auto-fixable issues
+GET /api/tasks
+
+# Query: ?page=1\&limit=10\&status=TODO\&priority=HIGH\&sortBy=dueDate
+
+# Response: { tasks: Task[], total: number, page: number }
+
+POST /api/tasks
+
+# Headers: Authorization: Bearer <token>
+
+# Body: { title: string, description?: string, priority?: Priority, dueDate?: Date, assignedToId?: string }
+
+# Response: { task: Task }
+
+GET /api/tasks/:id
+
+# Headers: Authorization: Bearer <token>
+
+# Response: { task: Task }
+
+PUT /api/tasks/:id
+
+# Headers: Authorization: Bearer <token>
+
+# Body: { title?: string, description?: string, status?: Status, priority?: Priority, dueDate?: Date, assignedToId?: string }
+
+# Response: { task: Task }
+
+DELETE /api/tasks/:id
+
+# Headers: Authorization: Bearer <token>
+
+# Response: { message: string }
+
+GET /api/tasks/stats
+
+# Headers: Authorization: Bearer <token>
+
+# Response: { total: number, completed: number, overdue: number, byStatus: object }
 
 ```
 
-#### Prettier Configuration
-Consistent code formatting:
+### **User Management Endpoints**
 ```
 
-npm run format       \# Format all files
+GET /api/users
+
+# Headers: Authorization: Bearer <token>
+
+# Response: { users: User[] }
+
+GET /api/users/:id/tasks
+
+# Headers: Authorization: Bearer <token>
+
+# Response: { tasks: Task[] }
 
 ```
 
-#### TypeScript Strict Mode
-Both projects use strict TypeScript configuration for type safety.
+## 🚀 **Deployment Guide**
 
-## 🧪 Testing
+### **Backend Deployment (Render)**
+1. **Connect Repository**: Link GitHub repository to Render
+2. **Environment Variables**: Set all production environment variables
+3. **Build Settings**:
+   - **Build Command**: `npm install && npx prisma generate && npm run build`
+   - **Start Command**: `npm start`
+4. **Database**: Create PostgreSQL database on Render
+5. **Deploy**: Automatic deployment on git push
 
-### Backend Testing
+### **Frontend Deployment (Vercel)**
+1. **Connect Repository**: Link GitHub repository to Vercel
+2. **Framework Detection**: Vercel auto-detects Next.js
+3. **Environment Variables**: Set production environment variables
+4. **Build Settings**: Auto-configured for Next.js
+5. **Deploy**: Automatic deployment on git push
 
-#### Unit Tests
+### **Domain Configuration**
+- **Frontend**: `https://your-app.vercel.app`
+- **Backend**: `https://your-app.onrender.com`
+- **CORS**: Update backend CORS_ORIGIN with frontend URL
+
+## 🧪 **Testing**
+
+### **Backend Tests**
 ```
 
 cd backend
@@ -439,488 +482,104 @@ cd backend
 
 npm test
 
-# Run tests in watch mode
-
-npm run test:watch
-
 # Run with coverage
 
 npm run test:coverage
 
-# Run specific test file
+# Run specific test suite
 
-npm test -- authService.test.ts
-
-```
-
-#### Test Coverage
-- **Services**: 95%+ coverage
-- **Controllers**: 90%+ coverage
-- **Models**: 100% coverage
-- **Utilities**: 95%+ coverage
-
-### Frontend Testing
-
-#### E2E Tests with Cypress
-```
-
-cd frontend
-
-# Run Cypress tests headless
-
-npm run test:e2e
-
-# Open Cypress interactive mode
-
-npm run test:e2e:open
-
-# Run specific test
-
-npx cypress run --spec "cypress/e2e/auth.cy.ts"
+npm test -- --testNamePattern="AuthService"
 
 ```
 
-#### Integration Tests
+### **Test Coverage**
+- **Unit Tests**: Service layer business logic (Task creation, User authentication, JWT handling)
+- **Integration Tests**: API endpoint testing with test database
+- **Real-time Tests**: Socket.io event handling and broadcasting
+
+### **Example Test Cases**
 ```
 
+// Task Service Tests
+describe('TaskService', () => {
+it('should create task with valid data', async () => {
+const taskData = { title: 'Test Task', creatorId: 'user123' }
+const result = await TaskService.createTask(taskData)
+expect(result.title).toBe('Test Task')
+})
 
-# Run full integration test suite
-
-npm run test:integration
-
-# Run comprehensive test suite
-
-../scripts/run-all-tests.sh
-
-```
-
-### Load Testing
-
-#### Artillery Load Tests
-```
-
-cd backend
-
-# Install Artillery globally
-
-npm install -g artillery
-
-# Run load tests
-
-npm run test:load
-
-# Custom load test
-
-artillery run load-test.yml
+it('should validate title length constraint', async () => {
+const taskData = { title: 'x'.repeat(101), creatorId: 'user123' }
+await expect(TaskService.createTask(taskData)).rejects.toThrow('Title too long')
+})
+})
 
 ```
 
-### Test Reports
+## 🔒 **Security Implementation**
 
-Tests generate comprehensive reports:
-- **Unit Tests**: HTML coverage reports in `backend/coverage/`
-- **E2E Tests**: Videos and screenshots in `frontend/cypress/`
-- **Load Tests**: Performance metrics in terminal
+### **Authentication & Authorization**
+- **JWT Tokens**: Secure token-based authentication
+- **Password Hashing**: bcryptjs with salt rounds
+- **HttpOnly Cookies**: Secure token storage
+- **Route Protection**: Middleware-based authorization
 
-## 🚀 Deployment
+### **Input Validation**  
+- **Zod Schemas**: Runtime type checking and validation
+- **SQL Injection Protection**: Prisma ORM parameterized queries
+- **XSS Prevention**: Input sanitization and output encoding
 
-### Pre-deployment Checklist
+### **Infrastructure Security**
+- **CORS Configuration**: Restricted cross-origin requests
+- **Rate Limiting**: API endpoint protection
+- **Environment Variables**: Secure secret management
+- **HTTPS**: SSL/TLS encryption in production
 
-#### 1. Environment Setup ✅
-- [ ] Production environment variables configured
-- [ ] MongoDB Atlas cluster setup and accessible
-- [ ] SSL certificates obtained (for HTTPS)
-- [ ] Domain DNS configured
-- [ ] Firewall rules configured
+## 📈 **Performance Optimizations**
 
-#### 2. Security Checklist ✅
-- [ ] JWT secrets are strong (32+ characters)
-- [ ] Database connection uses SSL
-- [ ] Environment variables are secure
-- [ ] CORS origins properly configured
-- [ ] Rate limiting configured
-- [ ] Security headers enabled
+### **Database Performance**
+- **Connection Pooling**: Prisma connection management
+- **Query Optimization**: Efficient joins and indexes
+- **Pagination**: Large dataset handling
+- **Caching**: Query result caching strategies
 
-#### 3. Performance Checklist ✅
-- [ ] Database indexes created
-- [ ] Frontend assets optimized
-- [ ] Gzip compression enabled
-- [ ] CDN configured (if applicable)
-- [ ] Caching strategies implemented
+### **Frontend Performance**
+- **Static Generation**: Next.js pre-rendered pages
+- **Code Splitting**: Automatic bundle optimization
+- **Image Optimization**: Next.js built-in image optimization
+- **Lazy Loading**: Component-level lazy loading
 
-#### 4. Monitoring Setup ✅
-- [ ] Health check endpoints working
-- [ ] Logging configured
-- [ ] Error tracking setup
-- [ ] Performance monitoring ready
-- [ ] Backup strategies in place
+### **Real-time Performance**
+- **Connection Management**: Efficient Socket.io connections
+- **Event Throttling**: Prevent excessive real-time updates
+- **Room Management**: Targeted event broadcasting
 
-### Deployment Options
+## 🔧 **Development Commands**
 
-### Option 1: Docker Deployment (Recommended)
-
-#### Production Docker Deployment
+### **Backend Commands**
 ```
 
-
-# 1. Clone repository
-
-git clone https://github.com/yourusername/collaborative-task-manager.git
-cd collaborative-task-manager
-
-# 2. Configure environment
-
-cp backend/.env.example backend/.env.production
-cp frontend/.env.example frontend/.env.production
-
-# Edit production environment variables
-
-nano backend/.env.production
-nano frontend/.env.production
-
-# 3. Build and deploy
-
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-
-# 4. Check deployment
-
-docker-compose ps
-docker-compose logs -f
-
-# 5. Run health checks
-
-curl http://localhost:5000/health
-curl http://localhost:3000
+npm run dev          \# Start development server
+npm run build        \# Build for production
+npm run start        \# Start production server
+npm run type-check   \# TypeScript type checking
+npm test             \# Run test suite
+npm run test:watch   \# Watch mode testing
+npm run prisma:studio \# Database GUI
+npm run prisma:generate \# Generate Prisma client
 
 ```
 
-#### Nginx Setup (Optional)
+### **Frontend Commands**
 ```
 
-
-# Install Nginx
-
-sudo apt update
-sudo apt install nginx
-
-# Copy configuration
-
-sudo cp nginx.conf /etc/nginx/sites-available/task-manager
-sudo ln -s /etc/nginx/sites-available/task-manager /etc/nginx/sites-enabled/
-
-# Test and reload
-
-sudo nginx -t
-sudo systemctl reload nginx
+npm run dev          \# Start development server
+npm run build        \# Build for production
+npm run start        \# Start production server
+npm run lint         \# Run ESLint
+npm run type-check   \# TypeScript checking
 
 ```
-
-### Option 2: PM2 Deployment
-
-#### Backend with PM2
-```
-
-cd backend
-
-# Install PM2 globally
-
-npm install -g pm2
-
-# Build application
-
-npm run build
-
-# Start with PM2
-
-pm2 start ecosystem.config.js --env production
-
-# Monitor
-
-pm2 status
-pm2 logs
-pm2 monit
-
-```
-
-#### Frontend with PM2
-```
-
-cd frontend
-
-# Build application
-
-npm run build
-
-# Start with PM2
-
-pm2 start npm --name "task-manager-frontend" -- start
-
-# Save PM2 configuration
-
-pm2 save
-pm2 startup
-
-```
-
-### Option 3: Cloud Deployment
-
-#### Heroku Deployment
-```
-
-
-# Install Heroku CLI
-
-# Create Heroku apps
-
-heroku create task-manager-api
-heroku create task-manager-client
-
-# Set environment variables
-
-heroku config:set NODE_ENV=production --app task-manager-api
-heroku config:set MONGODB_URI=your-atlas-connection --app task-manager-api
-heroku config:set JWT_SECRET=your-jwt-secret --app task-manager-api
-
-# Deploy backend
-
-git subtree push --prefix backend heroku-api main
-
-# Deploy frontend
-
-git subtree push --prefix frontend heroku-client main
-
-```
-
-#### AWS/Azure/GCP Deployment
-Detailed cloud deployment guides available in `docs/deployment/`
-
-### Post-Deployment Verification
-
-#### 1. Health Checks
-```
-
-
-# Backend health
-
-curl https://your-api-domain.com/health
-
-# Should return: {"status": "ok", "timestamp": "..."}
-
-# Frontend accessibility
-
-curl https://your-frontend-domain.com
-
-# Should return: 200 OK
-
-# Database connectivity test
-
-curl https://your-api-domain.com/api/auth/test-db
-
-```
-
-#### 2. Functionality Tests
-```
-
-
-# Run automated deployment tests
-
-./scripts/deployment-test.sh
-
-# Manual verification checklist:
-
-# [ ] User registration works
-
-# [ ] User login works
-
-# [ ] Task creation works
-
-# [ ] Real-time notifications work
-
-# [ ] Socket.io connection established
-
-# [ ] All pages load correctly
-
-```
-
-#### 3. Performance Validation
-```
-
-
-# Load test production environment
-
-artillery run load-test-prod.yml
-
-# Monitor response times
-
-curl -w "@curl-format.txt" -o /dev/null -s https://your-api-domain.com/api/tasks
-
-```
-
-#### 4. Security Validation
-```
-
-
-# SSL certificate check
-
-openssl s_client -connect your-domain.com:443
-
-# Security headers check
-
-curl -I https://your-domain.com
-
-# Check for common vulnerabilities
-
-npm audit
-
-```
-
-### Deployment Monitoring
-
-#### Application Monitoring
-- **Health Checks**: Automated endpoint monitoring
-- **Error Tracking**: Real-time error reporting
-- **Performance Metrics**: Response time monitoring
-- **Uptime Monitoring**: 24/7 availability tracking
-
-#### Database Monitoring
-- **Connection Pool**: Monitor active connections
-- **Query Performance**: Slow query identification
-- **Storage Usage**: Disk space monitoring
-- **Backup Status**: Regular backup verification
-
-### Rollback Strategy
-
-#### Quick Rollback Process
-```
-
-
-# Using Docker
-
-docker-compose down
-git checkout previous-stable-tag
-docker-compose up -d
-
-# Using PM2
-
-pm2 stop all
-git checkout previous-stable-tag
-npm run build
-pm2 restart all
-
-```
-
-## 📚 API Documentation
-
-### Authentication Endpoints
-
-#### Register User
-```
-
-POST /api/auth/register
-Content-Type: application/json
-
-{
-"name": "John Doe",
-"email": "john@example.com",
-"password": "securePassword123"
-}
-
-```
-
-#### Login User
-```
-
-POST /api/auth/login
-Content-Type: application/json
-
-{
-"email": "john@example.com",
-"password": "securePassword123"
-}
-
-```
-
-#### Get Profile
-```
-
-GET /api/auth/profile
-Authorization: Bearer <jwt_token>
-
-```
-
-### Task Endpoints
-
-#### Get All Tasks
-```
-
-GET /api/tasks?page=1\&limit=10\&status=To%20Do\&priority=High
-Authorization: Bearer <jwt_token>
-
-```
-
-#### Create Task
-```
-
-POST /api/tasks
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-"title": "Complete Project",
-"description": "Finish the collaborative task manager",
-"dueDate": "2025-12-31T23:59:59.000Z",
-"priority": "High",
-"assignedToId": "user_id_here"
-}
-
-```
-
-#### Update Task
-```
-
-PUT /api/tasks/:id
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-"title": "Updated Title",
-"status": "In Progress"
-}
-
-```
-
-#### Delete Task
-```
-
-DELETE /api/tasks/:id
-Authorization: Bearer <jwt_token>
-
-```
-
-### Response Format
-
-All API responses follow this format:
-```
-
-{
-"success": true,
-"message": "Operation completed successfully",
-"data": {
-// Response data here
-}
-}
-
-```
-
-Error responses:
-```
-
-{
-"success": false,
-"message": "Error description",
-"error": "Detailed error information"
-}
-
 ```
 
 ## 📁 Project Structure
@@ -979,96 +638,54 @@ collaborative-task-manager/
 
 ```
 
-```
+## 🤝 **Trade-offs & Design Decisions**
 
-## 🤝 Contributing
+### **Technology Choices**
+- **PostgreSQL vs MongoDB**: Chose PostgreSQL for ACID compliance and complex relationships
+- **Prisma vs Raw SQL**: Prisma for type safety and developer experience
+- **JWT vs Sessions**: JWT for stateless authentication and better scalability
+- **Socket.io vs WebSockets**: Socket.io for automatic fallbacks and better browser support
 
-We welcome contributions to the Collaborative Task Manager! Please follow these guidelines:
+### **Architecture Trade-offs**
+- **Monorepo vs Separate Repos**: Separate repos for independent deployment
+- **Server-side vs Client-side Rendering**: Hybrid approach with Next.js
+- **Real-time Updates**: Chose Socket.io over polling for better performance
 
-### Development Workflow
+### **Performance vs Complexity**
+- **Optimistic Updates**: Better UX at cost of complexity
+- **Type Safety**: Comprehensive TypeScript at cost of development time
+- **Real-time Features**: Enhanced collaboration with infrastructure complexity
 
-1. **Fork the Repository**
-```
+## 🔮 **Future Enhancements**
 
-git fork https://github.com/yourusername/collaborative-task-manager.git
+- **File Attachments**: Task file upload functionality
+- **Team Management**: User roles and permissions
+- **Advanced Analytics**: Task completion trends and productivity metrics
+- **Mobile App**: React Native mobile application
+- **Offline Support**: PWA with offline task management
+- **Audit Logging**: Complete action history and version control
 
-```
+## 👥 **Contributing**
 
-2. **Create Feature Branch**
-```
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)  
+5. Open Pull Request
 
-git checkout -b feature/your-feature-name
+## 📄 **License**
 
-```
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-3. **Make Changes**
-- Follow TypeScript and ESLint guidelines
-- Write tests for new functionality
-- Update documentation as needed
+## 🙏 **Acknowledgments**
 
-4. **Run Tests**
-```
-
-
-# Backend tests
-
-cd backend \&\& npm test
-
-# Frontend tests
-
-cd frontend \&\& npm run test:e2e
-
-# Full test suite
-
-./scripts/run-all-tests.sh
-
-```
-
-5. **Submit Pull Request**
-- Provide clear description
-- Reference related issues
-- Ensure all tests pass
-
-### Code Standards
-
-- **TypeScript**: Strict mode enabled
-- **ESLint**: Follow project configuration
-- **Prettier**: Use for code formatting
-- **Testing**: Maintain 90%+ coverage
-- **Documentation**: Update README for new features
-
-### Bug Reports
-
-Please use GitHub issues with:
-- Clear description
-- Steps to reproduce
-- Expected vs actual behavior
-- Environment details
-- Screenshots if applicable
-
-
-## 🙏 Acknowledgments
-
-- **Next.js Team** - For the amazing React framework
-- **MongoDB Team** - For the flexible database solution
-- **Socket.io Team** - For real-time communication capabilities
-- **TypeScript Team** - For type safety and developer experience
-- **Tailwind CSS** - For the utility-first CSS framework
-
-## 📞 Support
-
-For support and questions:
-
-- **Documentation**: Check the `docs/` directory
-- **Issues**: Create a GitHub issue
-- **Email**: support@taskmanager.com
-- **Discord**: Join our community server
+- **Next.js Team** for the excellent React framework
+- **Prisma Team** for the outstanding ORM experience
+- **Vercel & Render** for seamless deployment platforms
+- **Socket.io Contributors** for real-time communication capabilities
 
 ---
 
-**Built with ❤️ by [Vishwanath Nishad]**
-
-*Last updated: October 29, 2025*
+**Built with ❤️ by [Vishwanath Nishad] **
 ```
-
 
