@@ -110,72 +110,86 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
   }));
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8">
       <div className="grid grid-cols-1 gap-6">
-        <Input
-          {...register('title')}
-          label="Task Title"
-          placeholder="Enter task title"
-          error={errors.title?.message || ''}
-        />
-
-        <Textarea
-          {...register('description')}
-          label="Description"
-          placeholder="Describe the task in detail"
-          rows={4}
-          error={errors.description?.message || ''}
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Task Basic Info Section */}
+        <div className="space-y-6 rounded-lg bg-gray-50 p-4">
           <Input
-            {...register('dueDate')}
-            label="Due Date"
-            type="datetime-local"
-            error={errors.dueDate?.message || ''}
+            {...register('title')}
+            label="Task Title"
+            placeholder="Enter task title"
+            error={errors.title?.message || ''}
+            className="bg-white"
           />
 
-          <Select
-            {...register('priority')}
-            label="Priority"
-            options={priorityOptions}
-            error={errors.priority?.message || ''}
+          <Textarea
+            {...register('description')}
+            label="Description"
+            placeholder="Describe the task in detail"
+            rows={4}
+            error={errors.description?.message || ''}
+            className="bg-white"
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Select
-            {...register('assignedToId')}
-            label="Assign To"
-            options={userOptions}
-            placeholder={loadingUsers ? 'Loading users...' : 'Select a user'}
-            disabled={loadingUsers}
-            error={errors.assignedToId?.message || ''}
-          />
-
-          {isEditing && (
-            <Select
-              {...register('status')}
-              label="Status"
-              options={statusOptions}
-              error={(errors as any).status?.message || ''}
+        {/* Task Details Section */}
+        <div className="space-y-6 rounded-lg bg-gray-50 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Input
+              {...register('dueDate')}
+              label="Due Date"
+              type="datetime-local"
+              error={errors.dueDate?.message || ''}
+              className="bg-white"
             />
-          )}
+
+            <Select
+              {...register('priority')}
+              label="Priority"
+              options={priorityOptions}
+              error={errors.priority?.message || ''}
+              className="bg-white"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Select
+              {...register('assignedToId')}
+              label="Assign To"
+              options={userOptions}
+              placeholder={loadingUsers ? 'Loading users...' : 'Select a user'}
+              disabled={loadingUsers}
+              error={errors.assignedToId?.message || ''}
+              className={`bg-white ${loadingUsers ? 'animate-pulse' : ''}`}
+            />
+
+            {isEditing && (
+              <Select
+                {...register('status')}
+                label="Status"
+                options={statusOptions}
+                error={(errors as any).status?.message || ''}
+                className="bg-white"
+              />
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="flex justify-end space-x-3">
+      <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t border-gray-200">
         <Button
           type="button"
           variant="outline"
           onClick={onCancel}
           disabled={loading}
+          className="w-full sm:w-auto transition-transform hover:scale-105"
         >
           Cancel
         </Button>
         <Button
           type="submit"
           loading={loading}
+          className="w-full sm:w-auto transition-transform hover:scale-105"
         >
           {isEditing ? 'Update Task' : 'Create Task'}
         </Button>

@@ -94,66 +94,69 @@ export default function MyTasksPage() {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="space-y-6">
+        <div className="space-y-8 px-4 sm:px-6 lg:px-8 py-6">
           {/* Header */}
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">My Tasks</h1>
-              <p className="text-gray-600">View and manage your personal tasks</p>
+              <h1 className="text-2xl font-semibold text-gray-900 leading-tight">
+                My Tasks
+              </h1>
+              <p className="text-gray-600 mt-1">View and manage your personal tasks</p>
             </div>
           </div>
 
           {/* Task Type Filter and Stats */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-              <div className="mb-4 sm:mb-0">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div className="w-full sm:w-auto">
                 <Select
                   value={taskType}
                   options={taskTypeOptions}
                   onChange={(e) => handleTaskTypeChange(e.target.value as TaskType)}
-                  className="min-w-[200px]"
+                  className="w-full sm:min-w-[200px]"
                 />
               </div>
               
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 whitespace-nowrap">
                 Total: <span className="font-medium text-gray-900">{total}</span> tasks
               </div>
             </div>
 
             {/* Quick Stats */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <div className="text-lg font-semibold text-gray-900">{tasksByStatus.todo}</div>
-                <div className="text-xs text-gray-500">To Do</div>
-              </div>
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <div className="text-lg font-semibold text-blue-600">{tasksByStatus.inProgress}</div>
-                <div className="text-xs text-gray-500">In Progress</div>
-              </div>
-              <div className="text-center p-3 bg-purple-50 rounded-lg">
-                <div className="text-lg font-semibold text-purple-600">{tasksByStatus.review}</div>
-                <div className="text-xs text-gray-500">Review</div>
-              </div>
-              <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-lg font-semibold text-green-600">{tasksByStatus.completed}</div>
-                <div className="text-xs text-gray-500">Completed</div>
-              </div>
-              <div className="text-center p-3 bg-red-50 rounded-lg">
-                <div className="text-lg font-semibold text-red-600">{overdueTasks}</div>
-                <div className="text-xs text-gray-500">Overdue</div>
-              </div>
+              {[
+                { label: 'To Do', value: tasksByStatus.todo, color: 'gray' },
+                { label: 'In Progress', value: tasksByStatus.inProgress, color: 'blue' },
+                { label: 'Review', value: tasksByStatus.review, color: 'purple' },
+                { label: 'Completed', value: tasksByStatus.completed, color: 'green' },
+                { label: 'Overdue', value: overdueTasks, color: 'red' }
+              ].map(({ label, value, color }) => (
+                <div 
+                  key={label}
+                  className={`text-center p-4 bg-${color}-50 rounded-lg hover:bg-${color}-100 transition-colors duration-200 cursor-default`}
+                >
+                  <div className={`text-lg font-semibold text-${color}-${color === 'gray' ? '900' : '600'}`}>
+                    {loading ? (
+                      <div className="h-6 w-12 bg-gray-200 rounded animate-pulse mx-auto" />
+                    ) : value}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">{label}</div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Task List */}
-          <TaskList
-            tasks={tasks}
-            loading={loading}
-            error={error}
-            onEdit={handleEditTask}
-            onDelete={handleDeleteTask}
-            onStatusChange={handleStatusChange}
-          />
+          {/* Task List with loading state */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <TaskList
+              tasks={tasks}
+              loading={loading}
+              error={error}
+              onEdit={handleEditTask}
+              onDelete={handleDeleteTask}
+              onStatusChange={handleStatusChange}
+            />
+          </div>
 
           {/* Edit Task Modal */}
           <Modal

@@ -97,14 +97,19 @@ export default function DashboardPage() {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="space-y-6">
+        <div className="space-y-8 px-4 sm:px-6 lg:px-8 py-6">
           {/* Header */}
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-              <p className="text-gray-600">Manage your tasks and track progress</p>
+              <h1 className="text-2xl font-semibold text-gray-900 leading-tight">
+                Dashboard
+              </h1>
+              <p className="text-gray-600 mt-1">Manage your tasks and track progress</p>
             </div>
-            <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Button 
+              onClick={() => setIsCreateModalOpen(true)}
+              className="w-full sm:w-auto transition-transform hover:scale-105"
+            >
               Create Task
             </Button>
           </div>
@@ -113,33 +118,40 @@ export default function DashboardPage() {
           <StatsCards stats={stats} loading={statsLoading} />
 
           {/* Dashboard Widgets */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
               {/* Recent Tasks Preview */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-6">
+                <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-medium text-gray-900">Recent Tasks</h3>
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="hover:bg-gray-100 transition-colors"
+                  >
                     View all
                   </Button>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {loading ? (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {Array.from({ length: 3 }).map((_, index) => (
                         <div key={index} className="animate-pulse">
-                          <div className="h-16 bg-gray-200 rounded-lg"></div>
+                          <div className="h-16 bg-gray-100 rounded-lg"></div>
                         </div>
                       ))}
                     </div>
                   ) : (
                     tasks.slice(0, 3).map((task) => (
-                      <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex-1 min-w-0">
+                      <div 
+                        key={task.id} 
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                      >
+                        <div className="flex-1 min-w-0 mr-4">
                           <h4 className="text-sm font-medium text-gray-900 truncate">
                             {task.title}
                           </h4>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 mt-1">
                             {task.status} • {task.priority}
                           </p>
                         </div>
@@ -147,6 +159,7 @@ export default function DashboardPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleEditTask(task)}
+                          className="shrink-0 transition-transform hover:scale-105"
                         >
                           Edit
                         </Button>
@@ -157,29 +170,30 @@ export default function DashboardPage() {
               </div>
             </div>
             
-            <div>
+            <div className="lg:col-span-1">
               <OverdueTasks onEditTask={handleEditTask} />
             </div>
           </div>
 
-          {/* Filters */}
-          <TaskFilters
-            currentFilters={filters}
-            onFilterChange={handleFilterChange}
-            onClearFilters={handleClearFilters}
-          />
+          {/* Rest of the components */}
+          <div className="space-y-6">
+            <TaskFilters
+              currentFilters={filters}
+              onFilterChange={handleFilterChange}
+              onClearFilters={handleClearFilters}
+            />
 
-          {/* Task List */}
-          <TaskList
-            tasks={tasks}
-            loading={loading}
-            error={error}
-            onEdit={handleEditTask}
-            onDelete={handleDeleteTask}
-            onStatusChange={handleStatusChange}
-            pagination={pagination}
-            onPageChange={setPage}
-          />
+            <TaskList
+              tasks={tasks}
+              loading={loading}
+              error={error}
+              onEdit={handleEditTask}
+              onDelete={handleDeleteTask}
+              onStatusChange={handleStatusChange}
+              pagination={pagination}
+              onPageChange={setPage}
+            />
+          </div>
 
           {/* Create Task Modal */}
           <Modal

@@ -22,6 +22,10 @@ export function LoginForm() {
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: ''
+    }
   });
 
   const onSubmit = async (data: LoginFormData) => {
@@ -65,6 +69,7 @@ export function LoginForm() {
               autoComplete="email"
               placeholder="Enter your email"
               error={errors.email?.message}
+              required
             />
 
             <Input
@@ -74,6 +79,7 @@ export function LoginForm() {
               autoComplete="current-password"
               placeholder="Enter your password"
               error={errors.password?.message}
+              required
             />
           </div>
 
