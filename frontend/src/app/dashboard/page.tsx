@@ -108,7 +108,7 @@ export default function DashboardPage() {
             </div>
             <Button 
               onClick={() => setIsCreateModalOpen(true)}
-              className="w-full sm:w-auto transition-transform hover:scale-105"
+              className="w-full sm:w-auto transition-transform hover:scale-105 cursor-pointer"
             >
               Create Task
             </Button>
@@ -127,7 +127,7 @@ export default function DashboardPage() {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    className="hover:bg-gray-100 transition-colors"
+                    className="hover:bg-gray-100 transition-colors cursor-pointer"
                   >
                     View all
                   </Button>
@@ -145,10 +145,11 @@ export default function DashboardPage() {
                     tasks.slice(0, 3).map((task) => (
                       <div 
                         key={task.id} 
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 cursor-pointer group"
+                        onClick={() => handleEditTask(task)}
                       >
                         <div className="flex-1 min-w-0 mr-4">
-                          <h4 className="text-sm font-medium text-gray-900 truncate">
+                          <h4 className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600">
                             {task.title}
                           </h4>
                           <p className="text-xs text-gray-500 mt-1">
@@ -158,8 +159,11 @@ export default function DashboardPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleEditTask(task)}
-                          className="shrink-0 transition-transform hover:scale-105"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditTask(task);
+                          }}
+                          className="shrink-0 transition-transform hover:scale-105 cursor-pointer opacity-0 group-hover:opacity-100"
                         >
                           Edit
                         </Button>
