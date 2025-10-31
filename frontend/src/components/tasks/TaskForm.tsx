@@ -182,14 +182,14 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
           variant="outline"
           onClick={onCancel}
           disabled={loading}
-          className="w-full sm:w-auto transition-transform hover:scale-105"
+          className="w-full sm:w-auto transition-transform hover:scale-105 cursor-pointer"
         >
           Cancel
         </Button>
         <Button
           type="submit"
           loading={loading}
-          className="w-full sm:w-auto transition-transform hover:scale-105"
+          className="w-full sm:w-auto transition-transform hover:scale-105 cursor-pointer"
         >
           {isEditing ? 'Update Task' : 'Create Task'}
         </Button>

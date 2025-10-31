@@ -97,6 +97,7 @@ export function TaskList({
               variant="outline"
               onClick={() => onPageChange?.(pagination.currentPage - 1)}
               disabled={!pagination.hasPrev}
+              className="cursor-pointer transition-transform hover:scale-105"
             >
               Previous
             </Button>
@@ -104,6 +105,7 @@ export function TaskList({
               variant="outline"
               onClick={() => onPageChange?.(pagination.currentPage + 1)}
               disabled={!pagination.hasNext}
+              className="cursor-pointer transition-transform hover:scale-105"
             >
               Next
             </Button>
@@ -132,7 +134,7 @@ export function TaskList({
                   size="sm"
                   onClick={() => onPageChange?.(pagination.currentPage - 1)}
                   disabled={!pagination.hasPrev}
-                  className="rounded-r-none"
+                  className="rounded-r-none cursor-pointer transition-transform hover:scale-105"
                 >
                   Previous
                 </Button>
@@ -144,7 +146,7 @@ export function TaskList({
                     variant={page === pagination.currentPage ? 'primary' : 'outline'}
                     size="sm"
                     onClick={() => onPageChange?.(page)}
-                    className="rounded-none border-l-0"
+                    className="rounded-none border-l-0 cursor-pointer transition-transform hover:scale-105"
                   >
                     {page}
                   </Button>
@@ -155,7 +157,7 @@ export function TaskList({
                   size="sm"
                   onClick={() => onPageChange?.(pagination.currentPage + 1)}
                   disabled={!pagination.hasNext}
-                  className="rounded-l-none border-l-0"
+                  className="rounded-l-none border-l-0 cursor-pointer transition-transform hover:scale-105"
                 >
                   Next
                 </Button>

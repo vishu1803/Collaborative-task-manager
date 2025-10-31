@@ -80,6 +80,7 @@ export function TaskFilters({ onFilterChange, onClearFilters, currentFilters }: 
               variant="outline"
               size="sm"
               onClick={onClearFilters}
+              className="cursor-pointer"
             >
               Clear Filters
             </Button>
@@ -88,6 +89,7 @@ export function TaskFilters({ onFilterChange, onClearFilters, currentFilters }: 
             variant="ghost"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
+            className="cursor-pointer"
           >
             {isExpanded ? 'Hide Filters' : 'Show Filters'}
           </Button>
@@ -100,6 +102,7 @@ export function TaskFilters({ onFilterChange, onClearFilters, currentFilters }: 
           size="sm"
           variant={currentFilters.overdue ? 'primary' : 'outline'}
           onClick={() => handleFilterChange('overdue', !currentFilters.overdue)}
+          className="cursor-pointer transition-transform hover:scale-105"
         >
           Overdue Tasks
         </Button>
@@ -109,6 +112,7 @@ export function TaskFilters({ onFilterChange, onClearFilters, currentFilters }: 
           onClick={() => handleFilterChange('status', 
             currentFilters.status === TaskStatus.TODO ? '' : TaskStatus.TODO
           )}
+          className="cursor-pointer transition-transform hover:scale-105"
         >
           To Do
         </Button>
@@ -118,6 +122,7 @@ export function TaskFilters({ onFilterChange, onClearFilters, currentFilters }: 
           onClick={() => handleFilterChange('status', 
             currentFilters.status === TaskStatus.IN_PROGRESS ? '' : TaskStatus.IN_PROGRESS
           )}
+          className="cursor-pointer transition-transform hover:scale-105"
         >
           In Progress
         </Button>
@@ -127,6 +132,7 @@ export function TaskFilters({ onFilterChange, onClearFilters, currentFilters }: 
           onClick={() => handleFilterChange('priority', 
             currentFilters.priority === TaskPriority.URGENT ? '' : TaskPriority.URGENT
           )}
+          className="cursor-pointer transition-transform hover:scale-105"
         >
           Urgent
         </Button>
@@ -140,6 +146,7 @@ export function TaskFilters({ onFilterChange, onClearFilters, currentFilters }: 
             value={currentFilters.status || ''}
             options={statusOptions}
             onChange={(e) => handleFilterChange('status', e.target.value)}
+            className="cursor-pointer"
           />
 
           <Select
@@ -147,6 +154,7 @@ export function TaskFilters({ onFilterChange, onClearFilters, currentFilters }: 
             value={currentFilters.priority || ''}
             options={priorityOptions}
             onChange={(e) => handleFilterChange('priority', e.target.value)}
+            className="cursor-pointer"
           />
 
           <Select
@@ -154,6 +162,7 @@ export function TaskFilters({ onFilterChange, onClearFilters, currentFilters }: 
             value={currentFilters.sortBy}
             options={sortByOptions}
             onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+            className="cursor-pointer"
           />
 
           <Select
@@ -161,6 +170,7 @@ export function TaskFilters({ onFilterChange, onClearFilters, currentFilters }: 
             value={currentFilters.sortOrder}
             options={sortOrderOptions}
             onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
+            className="cursor-pointer"
           />
         </div>
       )}

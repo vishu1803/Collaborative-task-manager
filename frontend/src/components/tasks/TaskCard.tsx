@@ -136,6 +136,7 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
             size="sm"
             variant="outline"
             onClick={() => onEdit(task)}
+            className="cursor-pointer transition-transform hover:scale-105"
           >
             Edit
           </Button>
@@ -143,7 +144,7 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
             size="sm"
             variant="ghost"
             onClick={() => onDelete(task)}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer transition-transform hover:scale-105"
           >
             Delete
           </Button>
@@ -153,6 +154,7 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
           <Button
             size="sm"
             onClick={() => onStatusChange(task, nextStatus)}
+            className="cursor-pointer transition-transform hover:scale-105"
           >
             Move to {nextStatus}
           </Button>
