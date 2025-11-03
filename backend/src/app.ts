@@ -18,9 +18,25 @@ app.set('trust proxy', 1);
 app.use(securityHeaders);
 app.use(generalLimiter);
 
-// CORS configuration
+/* ==========================================================
+   🧩 UPDATED CORS CONFIGURATION for Render + Vercel
+   - Supports multiple origins (comma-separated)
+   - Logs blocked origins for debugging
+   ========================================================== */
+const allowedOrigins = [
+  ...(Array.isArray(config.frontendUrl) ? config.frontendUrl : [config.frontendUrl]),
+  ...(Array.isArray(config.socketCorsOrigin) ? config.socketCorsOrigin : [config.socketCorsOrigin]),
+];
+
 const corsOptions = {
-  origin: config.frontendUrl,
+  origin: (origin: string | undefined, callback: any) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`❌ Blocked by CORS: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
@@ -28,6 +44,19 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+/* ==========================================================
+   ❌ OLD CORS CONFIG (commented out)
+   ========================================================== */
+// const corsOptions = {
+//   origin: config.frontendUrl,
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+//   exposedHeaders: ['Set-Cookie'],
+// };
+// app.use(cors(corsOptions));
+/* ========================================================== */
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
