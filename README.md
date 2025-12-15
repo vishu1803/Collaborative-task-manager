@@ -1,5 +1,5 @@
 
-````markdown
+
 # 🚀 Collaborative Task Manager
 
 A full-stack web application for collaborative task management with real-time updates, built with modern technologies and deployed to production.
