@@ -18,15 +18,13 @@ app.set('trust proxy', 1);
 app.use(securityHeaders);
 app.use(generalLimiter);
 
-/* ==========================================================
-   🧩 UPDATED CORS CONFIGURATION for Render + Vercel
-   - Supports multiple origins (comma-separated)
-   - Logs blocked origins for debugging
-   ========================================================== */
+/* ==================== CORS Configuration ==================== */
 const allowedOrigins = [
-  ...(Array.isArray(config.frontendUrl) ? config.frontendUrl : [config.frontendUrl]),
-  ...(Array.isArray(config.socketCorsOrigin) ? config.socketCorsOrigin : [config.socketCorsOrigin]),
+  'http://localhost:3000',
+  'https://collaborative-task-manager-fc26-dfdd13at5.vercel.app',
+  'https://collaborative-task-manager-fc26.vercel.app', // fallback older domain
 ];
+
 
 const corsOptions = {
   origin: (origin: string | undefined, callback: any) => {
@@ -45,17 +43,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-/* ==========================================================
-   ❌ OLD CORS CONFIG (commented out)
-   ========================================================== */
-// const corsOptions = {
-//   origin: config.frontendUrl,
-//   credentials: true,
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-//   exposedHeaders: ['Set-Cookie'],
-// };
-// app.use(cors(corsOptions));
+console.log('✅ CORS Allowed Origins:', allowedOrigins);
 /* ========================================================== */
 
 // Body parsing middleware
