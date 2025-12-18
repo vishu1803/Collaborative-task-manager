@@ -6,6 +6,7 @@ import { TaskProvider } from '@/contexts/TaskContext';
 import { SWRProvider } from '@/contexts/SWRProvider';
 import { SocketProvider } from '@/contexts/SocketContext';
 import { ToastContainer } from '@/components/notifications/ToastContainer';
+import { Analytics } from '@vercel/analytics/next';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -27,6 +28,7 @@ export default function RootLayout({
             <SocketProvider>
               <TaskProvider>
                 {children}
+                <Analytics />
                 <ToastContainer />
               </TaskProvider>
             </SocketProvider>
