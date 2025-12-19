@@ -8,7 +8,12 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
-import { createTaskSchema, updateTaskSchema, CreateTaskFormData, UpdateTaskFormData } from '@/lib/validations';
+import {
+  createTaskSchema,
+  updateTaskSchema,
+  CreateTaskFormData,
+  UpdateTaskFormData,
+} from '@/lib/validations';
 import { userAPI } from '@/lib/api';
 
 interface TaskFormProps {
@@ -19,13 +24,12 @@ interface TaskFormProps {
 }
 
 export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskFormProps) {
-  // ✅ Fix 1: Initialize with empty array to prevent undefined
   const [users, setUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  const isEditing = !!task;
 
+  const isEditing = !!task;
   const schema = isEditing ? updateTaskSchema : createTaskSchema;
-  
+
   const {
     register,
     handleSubmit,
@@ -33,35 +37,33 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
     reset,
   } = useForm<CreateTaskFormData | UpdateTaskFormData>({
     resolver: zodResolver(schema),
-    defaultValues: task ? {
-      title: task.title,
-      description: task.description,
-      dueDate: new Date(task.dueDate).toISOString().slice(0, 16),
-      priority: task.priority,
-      // ✅ Fix 2: Safe access to assignedToId
-      assignedToId: typeof task.assignedToId === 'string' 
-        ? task.assignedToId 
-        : task.assignedToId?.id || '',
-      ...(isEditing && { status: task.status }),
-    } : {
-      priority: TaskPriority.MEDIUM,
-    },
+    defaultValues: task
+      ? {
+          title: task.title,
+          description: task.description,
+          dueDate: new Date(task.dueDate).toISOString().slice(0, 16),
+          priority: task.priority,
+          assignedToId:
+            typeof task.assignedToId === 'string'
+              ? task.assignedToId
+              : task.assignedToId?.id || '',
+          ...(isEditing && { status: task.status }),
+        }
+      : {
+          priority: TaskPriority.MEDIUM,
+        },
   });
 
-  // Fetch users for assignment
   useEffect(() => {
     const fetchUsers = async () => {
       setLoadingUsers(true);
       try {
         const response = await userAPI.getUsers(true);
         if (response.success && response.data) {
-          // ✅ Fix 3: Handle different response structures
           const userData = response.data.users || response.data;
           setUsers(Array.isArray(userData) ? userData : []);
         }
-      } catch (error) {
-        console.error('Failed to fetch users:', error);
-        // ✅ Fix 4: Set empty array on error
+      } catch {
         setUsers([]);
       } finally {
         setLoadingUsers(false);
@@ -72,22 +74,13 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
   }, []);
 
   const handleFormSubmit = async (data: CreateTaskFormData | UpdateTaskFormData) => {
-  try {
-    // ✅ Debug logging - let's see what's actually being sent
-    console.log('🔍 DEBUG - Form data being submitted:', {
-      assignedToId: data.assignedToId,
-      assignedToIdType: typeof data.assignedToId,
-      assignedToIdLength: data.assignedToId?.length,
-      rawData: data
-    });
-    
-    await onSubmit(data);
-    if (!isEditing) reset();
-  } catch (error) {
-    console.error('❌ TaskForm submission error:', error);
-  }
-};
-
+    try {
+      await onSubmit(data);
+      if (!isEditing) reset();
+    } catch (error) {
+      console.error('TaskForm submission error:', error);
+    }
+  };
 
   const priorityOptions = [
     { value: TaskPriority.LOW, label: 'Low' },
@@ -103,7 +96,6 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
     { value: TaskStatus.COMPLETED, label: 'Completed' },
   ];
 
-  // ✅ Fix 5: Safe mapping with fallback
   const userOptions = (users || []).map(user => ({
     value: user.id,
     label: `${user.name} (${user.email})`,
@@ -112,7 +104,6 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8">
       <div className="grid grid-cols-1 gap-6">
-        {/* Task Basic Info Section */}
         <div className="space-y-6 rounded-lg bg-gray-50 p-4">
           <Input
             {...register('title')}
@@ -132,7 +123,6 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
           />
         </div>
 
-        {/* Task Details Section */}
         <div className="space-y-6 rounded-lg bg-gray-50 p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input
@@ -186,6 +176,7 @@ export function TaskForm({ task, onSubmit, onCancel, loading = false }: TaskForm
         >
           Cancel
         </Button>
+
         <Button
           type="submit"
           loading={loading}
