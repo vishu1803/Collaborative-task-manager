@@ -243,7 +243,7 @@ cd collaborative-task-manager/backend
 
 npm install
 cp .env.example .env
-# configure .env accordingly
+
 
 npx prisma generate
 npx prisma db push
