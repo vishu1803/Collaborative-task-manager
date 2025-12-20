@@ -8,8 +8,6 @@ import { TaskList } from '@/components/tasks/TaskList';
 import { TaskForm } from '@/components/tasks/TaskForm';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
-
-// Use SWR hooks directly for My Tasks since they're different from the main task list
 import { useMyTasks, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
 
 type TaskType = 'all' | 'assigned' | 'created';

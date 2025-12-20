@@ -11,8 +11,6 @@ import { TaskForm } from '@/components/tasks/TaskForm';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { OverdueTasks } from '@/components/dashboard/OverdueTasks';
-
-// Use the unified context that wraps SWR
 import { useTask } from '@/contexts/TaskContext';
 import { useTaskStatistics } from '@/hooks/useTasks';
 
@@ -28,18 +26,15 @@ export default function DashboardPage() {
     deleteTask,
     setFilters,
     setPage,
-  } = useTask(); // This now uses SWR internally
+  } = useTask();
 
-  // Use SWR hook directly for stats
   const { stats, loading: statsLoading } = useTaskStatistics();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
 
-  const handleFilterChange = (newFilters: any) => {
-    setFilters(newFilters);
-  };
+  const handleFilterChange = (newFilters: any) => setFilters(newFilters);
 
   const handleClearFilters = () => {
     setFilters({
@@ -75,10 +70,7 @@ export default function DashboardPage() {
   };
 
   const handleDeleteTask = async (task: Task) => {
-    if (!window.confirm(`Are you sure you want to delete "${task.title}"?`)) {
-      return;
-    }
-
+    if (!window.confirm(`Are you sure you want to delete "${task.title}"?`)) return;
     try {
       await deleteTask(task.id);
     } catch (error) {
@@ -98,15 +90,12 @@ export default function DashboardPage() {
     <ProtectedRoute>
       <Layout>
         <div className="space-y-8 px-4 sm:px-6 lg:px-8 py-6">
-          {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900 leading-tight">
-                Dashboard
-              </h1>
+              <h1 className="text-2xl font-semibold text-gray-900 leading-tight">Dashboard</h1>
               <p className="text-gray-600 mt-1">Manage your tasks and track progress</p>
             </div>
-            <Button 
+            <Button
               onClick={() => setIsCreateModalOpen(true)}
               className="w-full sm:w-auto transition-transform hover:scale-105 cursor-pointer"
             >
@@ -114,24 +103,22 @@ export default function DashboardPage() {
             </Button>
           </div>
 
-          {/* Stats Cards */}
           <StatsCards stats={stats} loading={statsLoading} />
 
-          {/* Dashboard Widgets */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
-              {/* Recent Tasks Preview */}
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-medium text-gray-900">Recent Tasks</h3>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm"
                     className="hover:bg-gray-100 transition-colors cursor-pointer"
                   >
                     View all
                   </Button>
                 </div>
+
                 <div className="space-y-4">
                   {loading ? (
                     <div className="space-y-4">
@@ -143,8 +130,8 @@ export default function DashboardPage() {
                     </div>
                   ) : (
                     tasks.slice(0, 3).map((task) => (
-                      <div 
-                        key={task.id} 
+                      <div
+                        key={task.id}
                         className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 cursor-pointer group"
                         onClick={() => handleEditTask(task)}
                       >
@@ -173,13 +160,12 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="lg:col-span-1">
               <OverdueTasks onEditTask={handleEditTask} />
             </div>
           </div>
 
-          {/* Rest of the components */}
           <div className="space-y-6">
             <TaskFilters
               currentFilters={filters}
@@ -199,7 +185,6 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Create Task Modal */}
           <Modal
             isOpen={isCreateModalOpen}
             onClose={() => setIsCreateModalOpen(false)}
@@ -213,7 +198,6 @@ export default function DashboardPage() {
             />
           </Modal>
 
-          {/* Edit Task Modal */}
           <Modal
             isOpen={isEditModalOpen}
             onClose={() => {
